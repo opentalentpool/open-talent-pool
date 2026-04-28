@@ -1,0 +1,113 @@
+name: Security
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  scans:
+    name: Leak, publishable-files, and dependency scans
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Go for gitleaks
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache: false
+
+      - name: Enable pnpm from packageManager
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager.split('+')[0]")" --activate
+          pnpm --version
+
+      - name: Install gitleaks
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Scan git history for secrets
+        run: gitleaks detect --source . --redact
+
+      - name: Block files that must never be published
+        run: |
+          python3 - <<'PY'
+          import subprocess
+          import sys
+
+          tracked_files = subprocess.check_output(["git", "ls-files"], text=True).splitlines()
+          blocked = []
+          blocked_roots = {
+              "open-talent-pool-threat-model.md",
+              "security_best_practices_report.md",
+              "RELATORIO_LEGAL.md",
+              "LGPD_ROPA_RIPD_SIMPLIFICADO.md",
+          }
+          blocked_dirs = (
+              "output/",
+              "ownership-map-out/",
+              "dist/",
+              "coverage/",
+              "playwright-report/",
+              "test-results/",
+              "node_modules/",
+          )
+          blocked_suffixes = (
+              ".pem",
+              ".p12",
+              ".pfx",
+              ".key",
+              ".dump",
+              ".backup",
+              ".bak",
+              ".sqlite",
+              ".db",
+          )
+
+          for path in tracked_files:
+              lower = path.lower()
+              if path == ".env" or (path.startswith(".env.") and path != ".env.example"):
+                  blocked.append(path)
+                  continue
+              if path in blocked_roots:
+                  blocked.append(path)
+                  continue
+              if any(path.startswith(prefix) for prefix in blocked_dirs):
+                  blocked.append(path)
+                  continue
+              if lower.endswith(blocked_suffixes):
+                  blocked.append(path)
+
+          if blocked:
+              print("Blocked publishable files were found:")
+              for path in blocked:
+                  print(f"- {path}")
+              sys.exit(1)
+
+          print("No blocked publishable files found.")
+          PY
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod
