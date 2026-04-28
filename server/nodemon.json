@@ -1,0 +1,11 @@
+{
+  "watch": [
+    ".",
+    "../.env"
+  ],
+  "ext": "js,json,env,sql",
+  "ignore": [
+    "node_modules"
+  ],
+  "exec": "node index.js"
+}

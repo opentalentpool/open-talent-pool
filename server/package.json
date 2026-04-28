@@ -1,0 +1,26 @@
+{
+  "name": "open-talent-pool-server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon",
+    "alerts:dispatch": "node alerts-dispatch.js",
+    "mail:worker": "node mail-worker.js"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  },
+  "dependencies": {
+    "bullmq": "^5.76.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "helmet": "^8.1.0",
+    "ioredis": "^5.10.1",
+    "morgan": "^1.10.0",
+    "nodemailer": "^8.0.5",
+    "pg": "^8.11.0"
+  }
+}

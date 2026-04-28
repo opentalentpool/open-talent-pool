@@ -1,0 +1,55 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="otp-favicon-purple" x1="192" y1="80" x2="320" y2="272" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7C5CFF" />
+      <stop offset="1" stop-color="#5C39D8" />
+    </linearGradient>
+  </defs>
+
+  <circle cx="256" cy="92" r="44" fill="url(#otp-favicon-purple)" />
+  <circle cx="106" cy="148" r="34" fill="#18C6B2" />
+  <circle cx="406" cy="148" r="34" fill="#1E88FF" />
+
+  <path
+    d="M152 214H116C81.7583 214 54 241.758 54 276V360C54 394.242 81.7583 422 116 422H122"
+    stroke="#18C6B2"
+    stroke-width="52"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M360 214H396C430.242 214 458 241.758 458 276V360C458 394.242 430.242 422 396 422H390"
+    stroke="#1E88FF"
+    stroke-width="52"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M170 312V252C170 196.772 214.772 152 270 152H242C297.228 152 342 196.772 342 252V312"
+    stroke="url(#otp-favicon-purple)"
+    stroke-width="58"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M214 300L176 332L214 364"
+    stroke="#091A5B"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M298 300L336 332L298 364"
+    stroke="#091A5B"
+    stroke-width="28"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M262 282L226 382"
+    stroke="#18C6B2"
+    stroke-width="30"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+</svg>

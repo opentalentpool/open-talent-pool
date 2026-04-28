@@ -1,0 +1,393 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --brand-navy: 227 84% 18%;
+    --brand-teal: 171 77% 42%;
+    --brand-blue: 211 83% 52%;
+    --brand-violet: 254 82% 61%;
+
+    --background: 210 43% 98%;
+    --foreground: 226 39% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 226 39% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 226 39% 13%;
+
+    --primary: 227 84% 18%;
+    --primary-foreground: 210 43% 98%;
+
+    --secondary: 210 37% 95%;
+    --secondary-foreground: 226 39% 18%;
+
+    --muted: 212 27% 92%;
+    --muted-foreground: 223 15% 40%;
+
+    --accent: 171 77% 42%;
+    --accent-foreground: 227 84% 18%;
+
+    --destructive: 0 72% 46%;
+    --destructive-foreground: 210 43% 98%;
+
+    --border: 214 26% 87%;
+    --input: 214 26% 87%;
+    --ring: 171 77% 42%;
+
+    --radius: 1.5rem;
+
+    --sidebar-background: 210 43% 98%;
+    --sidebar-foreground: 226 39% 13%;
+    --sidebar-primary: 227 84% 18%;
+    --sidebar-primary-foreground: 210 43% 98%;
+    --sidebar-accent: 210 37% 95%;
+    --sidebar-accent-foreground: 226 39% 18%;
+    --sidebar-border: 214 26% 87%;
+    --sidebar-ring: 171 77% 42%;
+
+    --chart-1: 171 77% 42%;
+    --chart-2: 211 83% 52%;
+    --chart-3: 254 82% 61%;
+    --chart-4: 227 84% 18%;
+    --chart-5: 193 88% 43%;
+
+    --sidebar: 210 43% 98%;
+    --surface-dark: 227 84% 18%;
+    --surface-dark-foreground: 210 43% 98%;
+    --surface-dark-border: 227 60% 28%;
+    --page-gradient-start: 210 43% 98%;
+    --page-gradient-mid: 211 46% 97%;
+    --page-gradient-end: 0 0% 100%;
+    --page-glow-teal: 171 77% 42% / 0.12;
+    --page-glow-violet: 254 82% 61% / 0.08;
+    --page-glow-blue: 211 83% 52% / 0.1;
+    --page-grid-horizontal: 214 26% 87% / 0.24;
+    --page-grid-vertical: 214 26% 87% / 0.2;
+
+    --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-serif: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-display: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
+
+    --shadow-2xs: 0 1px 2px 0 hsl(224 48% 15% / 0.03);
+    --shadow-xs: 0 1px 2px 0 hsl(224 48% 15% / 0.05);
+    --shadow-sm: 0 14px 30px -24px hsl(224 48% 15% / 0.14);
+    --shadow: 0 24px 60px -36px hsl(224 48% 15% / 0.18);
+    --shadow-md: 0 28px 72px -42px hsl(224 48% 15% / 0.22);
+    --shadow-lg: 0 36px 88px -48px hsl(224 48% 15% / 0.24);
+    --shadow-xl: 0 44px 110px -56px hsl(224 48% 15% / 0.28);
+    --shadow-2xl: 0 56px 144px -64px hsl(224 48% 15% / 0.32);
+
+    --tracking-normal: 0em;
+    --spacing: 0.25rem;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 228 28% 11%;
+    --foreground: 210 43% 98%;
+
+    --card: 225 24% 13%;
+    --card-foreground: 210 43% 98%;
+
+    --popover: 225 24% 13%;
+    --popover-foreground: 210 43% 98%;
+
+    --primary: 210 43% 98%;
+    --primary-foreground: 227 84% 18%;
+
+    --secondary: 227 18% 19%;
+    --secondary-foreground: 210 43% 98%;
+
+    --muted: 227 18% 19%;
+    --muted-foreground: 214 18% 70%;
+
+    --accent: 171 77% 42%;
+    --accent-foreground: 227 84% 18%;
+
+    --destructive: 0 72% 56%;
+    --destructive-foreground: 210 43% 98%;
+
+    --border: 227 15% 24%;
+    --input: 227 15% 24%;
+    --ring: 171 77% 42%;
+
+    --sidebar-background: 225 24% 13%;
+    --sidebar-foreground: 210 43% 98%;
+    --sidebar-primary: 210 43% 98%;
+    --sidebar-primary-foreground: 227 84% 18%;
+    --sidebar-accent: 227 18% 19%;
+    --sidebar-accent-foreground: 210 43% 98%;
+    --sidebar-border: 227 15% 24%;
+    --sidebar-ring: 171 77% 42%;
+    --sidebar: 225 24% 13%;
+    --surface-dark: 228 34% 15%;
+    --surface-dark-foreground: 210 43% 98%;
+    --surface-dark-border: 227 24% 25%;
+    --page-gradient-start: 228 28% 11%;
+    --page-gradient-mid: 227 30% 10%;
+    --page-gradient-end: 223 32% 8%;
+    --page-glow-teal: 171 77% 42% / 0.14;
+    --page-glow-violet: 254 82% 61% / 0.12;
+    --page-glow-blue: 211 83% 52% / 0.16;
+    --page-grid-horizontal: 227 15% 24% / 0.42;
+    --page-grid-vertical: 227 15% 24% / 0.34;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background font-sans text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, hsl(var(--page-glow-teal)), transparent 28%),
+      radial-gradient(circle at top right, hsl(var(--page-glow-violet)), transparent 22%),
+      radial-gradient(circle at 82% 24%, hsl(var(--page-glow-blue)), transparent 20%),
+      linear-gradient(
+        180deg,
+        hsl(var(--page-gradient-start)) 0%,
+        hsl(var(--page-gradient-mid)) 52%,
+        hsl(var(--page-gradient-end)) 100%
+      );
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(hsl(var(--page-grid-horizontal)) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(var(--page-grid-vertical)) 1px, transparent 1px);
+    background-size: 100px 100px;
+    mask-image: radial-gradient(circle at top, black 0%, transparent 75%);
+    opacity: 0.32;
+  }
+
+  body.legal-document-mode {
+    background-image: none;
+  }
+
+  body.legal-document-mode::before {
+    content: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    position: relative;
+    isolation: isolate;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.05em;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  a,
+  button {
+    @apply transition-colors duration-200;
+  }
+
+  ::selection {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+  }
+}
+
+@layer components {
+  .eyebrow {
+    @apply text-[0.72rem] font-semibold uppercase tracking-[0.32em] text-muted-foreground;
+  }
+
+  .surface-panel {
+    @apply rounded-[2rem] border border-border/80 bg-card/80 shadow-sm backdrop-blur-md;
+  }
+
+  .surface-muted {
+    @apply rounded-[2rem] border border-border/70 bg-secondary/70 shadow-sm;
+  }
+
+  .surface-dark {
+    border: 1px solid hsl(var(--surface-dark-border));
+    border-radius: 2rem;
+    background-color: hsl(var(--surface-dark));
+    color: hsl(var(--surface-dark-foreground));
+    box-shadow: var(--shadow-lg);
+  }
+
+  .surface-dark-card {
+    @apply rounded-[1.6rem] p-5 backdrop-blur-sm;
+    background-color: hsl(var(--surface-dark-foreground) / 0.1);
+  }
+
+  .surface-dark-card-muted {
+    @apply rounded-[1.2rem] p-4;
+    border: 1px solid hsl(var(--surface-dark-foreground) / 0.15);
+    background-color: hsl(var(--surface-dark-foreground) / 0.05);
+  }
+
+  .surface-dark-eyebrow {
+    color: hsl(var(--surface-dark-foreground) / 0.65);
+  }
+
+  .surface-dark-title {
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .surface-dark-copy {
+    color: hsl(var(--surface-dark-foreground) / 0.8);
+  }
+
+  .surface-dark-copy-soft {
+    color: hsl(var(--surface-dark-foreground) / 0.78);
+  }
+
+  .surface-dark-copy-muted {
+    color: hsl(var(--surface-dark-foreground) / 0.7);
+  }
+
+  .surface-dark-copy-faint {
+    color: hsl(var(--surface-dark-foreground) / 0.45);
+  }
+
+  .surface-dark-icon {
+    @apply flex h-11 w-11 items-center justify-center rounded-full;
+    background-color: hsl(var(--surface-dark-foreground) / 0.12);
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .surface-dark-label {
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .surface-dark-checkbox {
+    @apply mt-1;
+    border-color: hsl(var(--surface-dark-foreground) / 0.4);
+  }
+
+  .surface-dark-checkbox[data-state="checked"] {
+    background-color: hsl(var(--surface-dark-foreground));
+    color: hsl(var(--surface-dark));
+  }
+
+  .surface-dark-input {
+    @apply h-11 rounded-2xl;
+    border-color: hsl(var(--surface-dark-foreground) / 0.2);
+    background-color: hsl(var(--surface-dark-foreground) / 0.1);
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .surface-dark-input::placeholder {
+    color: hsl(var(--surface-dark-foreground) / 0.45);
+  }
+
+  .surface-dark-outline-button {
+    @apply rounded-full border bg-transparent hover:bg-white;
+    border-color: hsl(var(--surface-dark-foreground) / 0.2);
+    color: hsl(var(--surface-dark-foreground));
+  }
+
+  .surface-dark-outline-button:hover {
+    color: hsl(var(--surface-dark));
+  }
+
+  .nav-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-card/80 hover:text-foreground;
+  }
+
+  .nav-pill-active {
+    @apply bg-card/90 text-foreground shadow-sm;
+  }
+
+  .nav-drawer-link {
+    @apply flex items-center gap-3 rounded-[1.35rem] border border-border/80 bg-card/80 px-4 py-4 text-sm font-medium text-foreground transition-colors hover:bg-secondary/70;
+  }
+
+  .metric-tile {
+    @apply rounded-[1.6rem] border border-border/80 bg-card/80 p-5 shadow-sm backdrop-blur-md;
+  }
+}
+
+@layer utilities {
+  .dark .bg-white\/90 {
+    background-color: hsl(var(--card) / 0.9);
+  }
+
+  .dark .bg-white\/88 {
+    background-color: hsl(var(--card) / 0.88);
+  }
+
+  .dark .bg-white\/85 {
+    background-color: hsl(var(--card) / 0.85);
+  }
+
+  .dark .bg-white\/80 {
+    background-color: hsl(var(--card) / 0.8);
+  }
+
+  .dark .bg-white\/75 {
+    background-color: hsl(var(--card) / 0.75);
+  }
+
+  .dark .bg-white\/70 {
+    background-color: hsl(var(--card) / 0.7);
+  }
+}
+
+@media print {
+  @page {
+    margin: 16mm;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+
+  body,
+  body.legal-document-mode {
+    background: #fff !important;
+    background-image: none !important;
+    color: #000 !important;
+  }
+
+  body::before,
+  body.legal-document-mode::before {
+    content: none !important;
+    display: none !important;
+  }
+
+  .legal-print-hidden {
+    display: none !important;
+  }
+
+  .legal-document-page {
+    max-width: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .legal-document-meta,
+  .legal-document-summary,
+  .legal-document-section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
