@@ -614,7 +614,7 @@ function createApp({
           connectSrc: ["'self'", "https://challenges.cloudflare.com"],
           fontSrc: ["'self'", "data:"],
           formAction: ["'self'"],
-          frameAncestors: ["'self'"],
+          frameAncestors: ["'none'"],
           frameSrc: ["'self'", "https://challenges.cloudflare.com"],
           imgSrc: ["'self'", "data:", "blob:"],
           objectSrc: ["'none'"],

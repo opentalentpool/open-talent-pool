@@ -27,8 +27,10 @@ EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 
 FROM node:18-alpine AS server
-WORKDIR /app
+WORKDIR /app/server
 ENV NODE_ENV=production
-COPY --from=server-deploy /prod/server /app
+COPY --from=server-deploy /app/package.json /app/package.json
+COPY --from=server-deploy /prod/server /app/server
+COPY --from=server-deploy /app/src/lib /app/src/lib
 EXPOSE 4000
 CMD ["node", "index.js"]
