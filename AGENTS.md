@@ -20,13 +20,13 @@ O produto nasceu para reduzir o atrito entre:
 
 O objetivo do OpenTalentPool é democratizar o acesso à descoberta de talentos em TI com busca eficiente, filtros úteis, transparência e baixo custo de acesso. A plataforma deve ser útil para recrutadores, lideranças técnicas, startups, pequenas empresas, comunidades e pessoas com necessidades legítimas de busca, sem depender de soluções caras ou excessivamente fechadas.
 
-## Estado atual do workspace
+## Contexto do workspace
 
 ### Visão do produto
 
 Na visão do produto, profissionais podem manter perfis técnicos pesquisáveis e quem busca talentos pode localizar pessoas por palavras-chave, senioridade, stack, localização, modelo de trabalho e outros filtros relevantes. Cenários específicos, como vagas afirmativas, só são aceitáveis quando tratados com critérios explícitos, éticos e transparentes.
 
-### Implementado hoje
+### Capacidades do produto
 
 - Frontend em `React + Vite + TypeScript`
 - Backend próprio em `Express`
@@ -40,11 +40,11 @@ Na visão do produto, profissionais podem manter perfis técnicos pesquisáveis 
 - Infraestrutura base de testes com `Vitest`, `React Testing Library`, `Supertest` e configuração de `Playwright`
 - Workspace gerenciado por `pnpm`
 
-### Não tratar como pronto quando não estiver
+### Pontos de atenção operacional
 
-- O produto ainda depende de uma única trilha de autenticação por e-mail + código; qualquer mudança nessa área é sensível e precisa de revisão reforçada
-- O ownership map atual mostra concentração operacional no auth; bus factor baixo deve ser tratado como risco real de manutenção e segurança
-- A cobertura de testes ainda é inicial e deve crescer junto com as próximas mudanças
+- A autenticação por e-mail + código é a única trilha de acesso; qualquer mudança nessa área é sensível e precisa de revisão reforçada
+- O ownership map registra concentração operacional no auth; bus factor baixo deve ser tratado como risco real de manutenção e segurança
+- A cobertura de testes deve crescer junto com mudanças que ampliem risco, comportamento ou superfície pública
 
 ## Linguagem ubíqua e mapa de domínio
 
@@ -60,7 +60,7 @@ Use sempre os termos abaixo como linguagem canônica do produto:
 - `stack`: tecnologias, ferramentas e competências técnicas
 - `modelo de trabalho`: remoto, híbrido ou presencial
 
-### Subdomínios atuais e esperados
+### Subdomínios do produto
 
 - `Identidade e Acesso`
   Cadastro, verificação por e-mail, desafios OTP com `challengeId`, sessão em cookie, anti-bot e papéis básicos.
@@ -119,7 +119,7 @@ Antes de implementar qualquer mudança, a IA deve:
 1. Entender o pedido e reler este documento.
 2. Inspecionar o código relevante antes de propor ou editar.
 3. Em tarefas de design, UI/UX, frontend e design system, a IA pode consultar skills, referências e ferramentas especializadas quando isso agregar valor, sem tornar nenhuma delas obrigatória.
-4. Diferenciar claramente `estado atual`, `objetivo desejado` e `impacto da mudança`.
+4. Diferenciar claramente `contexto observado`, `objetivo desejado` e `impacto da mudança`.
 5. Escolher a menor mudança segura que resolva o problema sem inflar escopo.
 6. Explicitar suposições quando não puder validar algo no workspace.
 7. Em qualquer mudança de autenticação, sessão, rate limit, captcha, cookies, CORS, headers de segurança ou fila de e-mails sensível, revisar também backend, frontend, schema, testes e documentação.
@@ -208,7 +208,7 @@ As respostas da IA neste workspace devem:
 - começar do contexto real do código, não de suposições abstratas;
 - propor plano enxuto quando necessário;
 - implementar orientado a testes;
-- deixar claro o que é fato atual, o que é visão e o que é suposição;
+- deixar claro o que é fato validado, o que é visão e o que é suposição;
 - resumir no final as validações executadas, os riscos remanescentes e as decisões assumidas.
 
 Se o prompt for ambíguo, a IA deve explorar o repositório primeiro e só perguntar o que realmente não puder ser descoberto localmente.

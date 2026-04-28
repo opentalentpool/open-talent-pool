@@ -49,7 +49,6 @@ describe("LegalDocumentPage", () => {
       "mailto:contato@opentalentpool.org",
     );
     expect(screen.queryByText(/leitura rápida/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/pontos centrais desta página no estado atual do opentalentpool 1\.0/i)).not.toBeInTheDocument();
 
     unmount();
 
@@ -64,10 +63,10 @@ describe("LegalDocumentPage", () => {
     );
 
     expect(
-      screen.getByText(/a busca técnica padrão continua mostrando perfis tecnicamente aderentes, inclusive de grupos minorizados/i),
+      screen.getByText(/a busca técnica padrão mantém perfis tecnicamente aderentes, inclusive de grupos minorizados/i),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/os perfis dentro do escopo afirmativo aparecem primeiro, mas os demais perfis tecnicamente aderentes continuam na mesma lista/i),
+      screen.getByText(/os perfis dentro do escopo afirmativo aparecem primeiro, mas os demais perfis tecnicamente aderentes permanecem na mesma lista/i),
     ).toBeInTheDocument();
   });
 

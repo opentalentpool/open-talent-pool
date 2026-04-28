@@ -1,10 +1,32 @@
-# OpenTalentPool 1.0.0
+<p align="center">
+  <img src="favicon.svg" alt="OpenTalentPool" width="80" height="80">
+</p>
+
+# OpenTalentPool
+
+<p align="center">
+  <a href="https://github.com/opentalentpool/open-talent-pool/actions/workflows/ci.yml">
+    <img alt="CI" src="https://img.shields.io/github/actions/workflow/status/opentalentpool/open-talent-pool/ci.yml?branch=main&label=CI">
+  </a>
+  <a href="https://github.com/opentalentpool/open-talent-pool/actions/workflows/security.yml">
+    <img alt="Security" src="https://img.shields.io/github/actions/workflow/status/opentalentpool/open-talent-pool/security.yml?branch=main&label=Security">
+  </a>
+  <a href="https://github.com/opentalentpool/open-talent-pool/actions/workflows/e2e.yml">
+    <img alt="E2E" src="https://img.shields.io/github/actions/workflow/status/opentalentpool/open-talent-pool/e2e.yml?branch=main&label=E2E">
+  </a>
+  <a href="https://github.com/opentalentpool/open-talent-pool/actions/workflows/docker-smoke.yml">
+    <img alt="Docker Smoke" src="https://img.shields.io/github/actions/workflow/status/opentalentpool/open-talent-pool/docker-smoke.yml?branch=main&label=Docker%20Smoke">
+  </a>
+  <a href="https://github.com/opentalentpool/open-talent-pool/actions/workflows/codeql.yml">
+    <img alt="CodeQL" src="https://img.shields.io/github/actions/workflow/status/opentalentpool/open-talent-pool/codeql.yml?branch=main&label=CodeQL">
+  </a>
+</p>
 
 Plataforma pública e gratuita de descoberta de talentos em tecnologia.
 
 Para prompts, contexto de produto e convenções de engenharia do workspace, use [AGENTS.md](AGENTS.md) como referência principal.
 
-## O que o 1.0 entrega
+## Capacidades
 
 - Perfis profissionais reais com publicação manual
 - Busca pública conectada ao PostgreSQL
@@ -14,7 +36,7 @@ Para prompts, contexto de produto e convenções de engenharia do workspace, use
 - Alertas por e-mail com frequência configurável para novas correspondências de buscas salvas
 - Autenticação por código enviado por e-mail com `challengeId`, Turnstile e sessão em cookie `HttpOnly`
 
-Contato privado continua protegido: o `email` da conta não aparece na busca pública nem na página pública do perfil.
+Contato privado é protegido: o `email` da conta não aparece na busca pública nem na página pública do perfil.
 
 ## Stack
 
@@ -40,7 +62,7 @@ cp .env.example .env
 
 3. Ajuste as variáveis necessárias no `.env`.
 
-Opcionalmente, crie um `.env.local` para sobrescrever valores apenas no desenvolvimento local. O backend agora lê `.env.local` antes do `.env`, alinhando o comportamento com o Vite no frontend.
+Opcionalmente, crie um `.env.local` para sobrescrever valores apenas no desenvolvimento local. O backend lê `.env.local` antes do `.env`, alinhando o comportamento com o Vite no frontend.
 
 4. Suba a aplicação:
 
@@ -70,7 +92,7 @@ Use `.env.example` como referência de chaves e formatos aceitos. O arquivo cont
 
 `REDIS_USERNAME`, `REDIS_PASSWORD` e `MAIL_QUEUE_PREFIX` são obrigatórios em produção. O runtime rejeita o boot com usuário `default`, senha placeholder ou prefixo vazio.
 
-Em `localhost` e `127.0.0.1`, o fluxo local aceita o token dummy oficial do Turnstile apenas fora de produção para não travar autenticação durante desenvolvimento e testes. Em produção, a validação continua fail-closed com verificação real no Cloudflare.
+Em `localhost` e `127.0.0.1`, o fluxo local aceita o token dummy oficial do Turnstile apenas fora de produção para não travar autenticação durante desenvolvimento e testes. Em produção, a validação é fail-closed com verificação real no Cloudflare.
 
 `INTERNAL_OPERATIONS_ADMIN_EMAIL` e `INTERNAL_ACCOUNT_EMAIL_DOMAIN` definem a conta administrativa operacional reservada. Os valores locais do `.env.example` são apenas para desenvolvimento; produção rejeita esses defaults.
 
@@ -104,20 +126,20 @@ O Gmail exige senha de app, normalmente com verificação em duas etapas ativa. 
 
 ## Fila global de e-mails
 
-Todos os e-mails do sistema agora passam por uma fila única com:
+Todos os e-mails do sistema passam por uma fila única com:
 
 - `Postgres` como fonte de verdade (`email_outbox`)
 - `Redis + BullMQ` como mecanismo de distribuição
 - `mail-worker` dedicado para retry e entrega SMTP
 
-Os fluxos críticos continuam bloqueantes para o endpoint, mas usam o mesmo `email_outbox` com drenagem inline antes do `COMMIT`:
+Os fluxos críticos são bloqueantes para o endpoint, mas usam o mesmo `email_outbox` com drenagem inline antes do `COMMIT`:
 
 - OTP de autenticação
 - autorização de `profile_contact_email`
 - recibo de denúncia
 - decisão punitiva de moderação
 
-Prioridades atuais da fila:
+Prioridades da fila:
 
 - `1000`: autenticação (`signup`, `login`, `profile_contact_email`)
 - `500`: recibo e decisão de moderação
@@ -191,7 +213,7 @@ Os testes E2E sobem:
 - frontend em `http://127.0.0.1:8080`
 - backend com banco em memória e rotas de teste habilitadas em `http://127.0.0.1:4000`
 
-Durante os testes, o login por e-mail continua usando `challengeId` e cookie de sessão. As rotas de teste apenas expõem o último código capturado em memória para o ambiente `NODE_ENV=test`.
+Durante os testes, o login por e-mail usa `challengeId` e cookie de sessão. As rotas de teste apenas expõem o último código capturado em memória para o ambiente `NODE_ENV=test`.
 
 ## Docker
 
@@ -249,4 +271,4 @@ Tabelas principais:
 
 - Segredos não devem ser versionados.
 - A publicação do perfil é manual e depende de checklist mínimo de completude.
-- `deploy.sh` continua voltado ao ambiente local de desenvolvimento.
+- `deploy.sh` permanece voltado ao ambiente local de desenvolvimento.

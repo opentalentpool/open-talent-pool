@@ -41,14 +41,14 @@ export const LEGAL_DOCUMENTS = {
     summary: [
       "Autenticação por e-mail com código, cookie essencial de sessão, armazenamento opcional só após consentimento e autoatendimento de exportação e exclusão no dashboard.",
       "Somente perfis publicados entram na vitrine pública; o e-mail da conta e os dados afirmativos autodeclarados não aparecem publicamente; e-mail de contato só pode ser exibido a recrutadores autenticados quando o profissional ativa esse canal.",
-      "Esta versão documenta bases legais por finalidade, retenção por categoria, logs privados de acesso ao contato, denúncias autenticadas com revisão administrativa, notificações transacionais de moderação, retenção mínima pseudonimizada após banimento definitivo e o canal LGPD complementar em `contato@opentalentpool.org`.",
+      "Esta política documenta bases legais por finalidade, retenção por categoria, logs privados de acesso ao contato, denúncias autenticadas com revisão administrativa, notificações transacionais de moderação, retenção mínima pseudonimizada após banimento definitivo e o canal LGPD complementar em `contato@opentalentpool.org`.",
     ],
     sections: [
       {
         title: "1. Escopo desta política",
         paragraphs: [
           "Esta política cobre o tratamento de dados pessoais realizado pelo OpenTalentPool na navegação pública, no cadastro, na autenticação por e-mail com código, na edição do perfil profissional, no painel do recrutador, nos alertas por e-mail e nos fluxos de busca inclusiva.",
-          `O controlador informado nesta versão é ${LEGAL_CONTROLLER_NAME}, com referência societária ao CNPJ ${LEGAL_CONTROLLER_CNPJ}.`,
+          `O controlador informado neste documento é ${LEGAL_CONTROLLER_NAME}, com referência societária ao CNPJ ${LEGAL_CONTROLLER_CNPJ}.`,
         ],
       },
       {
@@ -94,7 +94,7 @@ export const LEGAL_DOCUMENTS = {
         title: "5. Critérios gerais de busca, ranking e uso inclusivo",
         paragraphs: [
           "A busca pública e autenticada considera aderência textual, senioridade, disponibilidade, modelos de trabalho, localização e recência do perfil para organizar resultados de forma útil e operacional.",
-          "Na busca inclusiva, o recrutador autenticado precisa aceitar a política específica do fluxo, informar o tipo da vaga e registrar uma referência curta da oportunidade. Quando filtros afirmativos são usados, os perfis aderentes ao recorte afirmativo aparecem priorizados no topo, mas os demais perfis tecnicamente aderentes continuam na mesma lista.",
+          "Na busca inclusiva, o recrutador autenticado precisa aceitar a política específica do fluxo, informar o tipo da vaga e registrar uma referência curta da oportunidade. Quando filtros afirmativos são usados, os perfis aderentes ao recorte afirmativo aparecem priorizados no topo, mas os demais perfis tecnicamente aderentes permanecem na mesma lista.",
           "Esse ranqueamento não equivale a decisão automatizada de contratação. Ele é um mecanismo de descoberta e priorização de leitura dentro da plataforma.",
         ],
       },
@@ -110,8 +110,8 @@ export const LEGAL_DOCUMENTS = {
         title: "7. Cookies, armazenamento local e retenção",
         paragraphs: [
           "O OpenTalentPool usa um cookie essencial de sessão em `HttpOnly` para manter a autenticação no navegador e um cookie essencial `open-talent-pool-cookie-consent` para lembrar a escolha entre armazenamento opcional e sessão essencial.",
-          "Tema, retomada local de desafio por e-mail e rascunhos locais do perfil só são persistidos quando a pessoa aceita armazenamento opcional. O rascunho local atual usa a chave `professional_profile_draft:v2:*` e não persiste `affirmativeProfile` nem `affirmativeConsentAccepted`.",
-          "A retenção operacional atual segue a lógica abaixo, sem prejuízo de períodos maiores quando houver necessidade de segurança, auditoria, defesa em processo ou cumprimento de obrigação legal.",
+          "Tema, retomada local de desafio por e-mail e rascunhos locais do perfil só são persistidos quando a pessoa aceita armazenamento opcional. O rascunho local usa a chave `professional_profile_draft:v2:*` e não persiste `affirmativeProfile` nem `affirmativeConsentAccepted`.",
+          "A retenção operacional segue a lógica abaixo, sem prejuízo de períodos maiores quando houver necessidade de segurança, auditoria, defesa em processo ou cumprimento de obrigação legal.",
         ],
         items: [
           "Desafios OTP, tentativas e pendências de autenticação: até 15 minutos, com bloqueios temporários de segurança quando houver abuso ou tentativas inválidas.",
@@ -131,7 +131,7 @@ export const LEGAL_DOCUMENTS = {
         title: "8. Compartilhamento, operadores e transferências internacionais",
         paragraphs: [
           "O OpenTalentPool não vende dados pessoais. O tratamento pode envolver operadores e provedores de infraestrutura necessários para a operação técnica do serviço, como hospedagem, banco de dados, entrega de e-mails, CDN ou proxy reverso e mecanismos anti-bot.",
-          "Nesta versão, o repositório comprova explicitamente o uso de Cloudflare Turnstile para proteção anti-bot. Esse fluxo trata sinais técnicos como token do desafio, IP, user-agent, origem e outros metadados operacionais necessários à verificação.",
+          "A implementação documentada usa Cloudflare Turnstile para proteção anti-bot. Esse fluxo trata sinais técnicos como token do desafio, IP, user-agent, origem e outros metadados operacionais necessários à verificação.",
           "Dependendo da infraestrutura efetivamente contratada, alguns desses operadores podem processar dados fora do Brasil. Quando isso ocorrer, o tratamento seguirá salvaguardas compatíveis com a legislação aplicável e com a finalidade operacional descrita nesta política.",
         ],
       },
@@ -141,7 +141,7 @@ export const LEGAL_DOCUMENTS = {
           "A pessoa usuária pode pedir confirmação de tratamento, acesso, correção, atualização, exclusão, revogação de consentimento, informação sobre compartilhamento, oposição e esclarecimentos sobre o funcionamento da plataforma nos limites da LGPD.",
           "O dashboard autenticado oferece autoatendimento para exportação em JSON, exclusão permanente da conta com confirmação forte por e-mail digitado, revogação da autodeclaração afirmativa pelo fluxo normal de edição do perfil, consulta aos acessos privados ao e-mail de contato e submissão autenticada de denúncias.",
           "Quando uma denúncia é recebida, a pessoa denunciante recebe confirmação por e-mail. Quando uma sanção é aplicada, a pessoa alvo recebe comunicação por e-mail com o enquadramento administrativo e o canal de revisão cabível.",
-          "A exportação atual inclui os próprios relatos de denúncia feitos pela pessoa usuária, os logs de acesso ao seu e-mail de contato e eventuais restrições ativas sobre sua conta ou perfil, sem revelar identidade de terceiros denunciantes nem notas internas da moderação.",
+          "A exportação inclui os próprios relatos de denúncia feitos pela pessoa usuária, os logs de acesso ao seu e-mail de contato e eventuais restrições ativas sobre sua conta ou perfil, sem revelar identidade de terceiros denunciantes nem notas internas da moderação.",
           "A exclusão de conta remove os dados operacionais do produto, como conta, perfil, favoritos, buscas salvas, sessões e vínculos de uso. A plataforma mantém apenas trilhas mínimas pseudonimizadas quando estritamente necessárias para auditoria, segurança, exercício regular de direitos ou defesa.",
           "Se houver banimento definitivo por moderação, a remoção operacional também pode preservar apenas o hash do e-mail normalizado e o registro jurídico mínimo necessário para impedir reingresso abusivo e resguardar a plataforma.",
         ],
@@ -168,15 +168,15 @@ export const LEGAL_DOCUMENTS = {
     effectiveDateLabel: LEGAL_DOCUMENT_EFFECTIVE_DATE_LABEL,
     summary: [
       "Publicação manual do perfil, busca pública aberta e painéis autenticados para curadoria, alertas e gestão do próprio perfil.",
-      "O serviço é gratuito na versão atual, exige uso lícito e responsável, e permite suspensão, limitação ou remoção quando houver abuso, fraude, coleta indevida de dados ou descumprimento das políticas públicas vinculadas.",
-      "Recrutadores continuam responsáveis por cumprir a legislação brasileira, inclusive regras trabalhistas, antidiscriminatórias e de proteção de dados, dentro e fora da plataforma.",
+      "O serviço é gratuito, exige uso lícito e responsável, e permite suspensão, limitação ou remoção quando houver abuso, fraude, coleta indevida de dados ou descumprimento das políticas públicas vinculadas.",
+      "Recrutadores são responsáveis por cumprir a legislação brasileira, inclusive regras trabalhistas, antidiscriminatórias e de proteção de dados, dentro e fora da plataforma.",
     ],
     sections: [
       {
         title: "1. Sobre o serviço",
         paragraphs: [
           "O OpenTalentPool é uma plataforma pública e gratuita de descoberta de talentos em tecnologia. O objetivo do produto é facilitar leitura técnica inicial, curadoria operacional e continuidade de busca sem transformar contato pessoal em moeda de navegação.",
-          "A versão atual pode evoluir, mudar interfaces, criar ou remover funcionalidades e aplicar restrições operacionais quando isso for necessário para segurança, manutenção, conformidade ou melhoria do serviço.",
+          "O serviço pode evoluir, mudar interfaces, criar ou remover funcionalidades e aplicar restrições operacionais quando isso for necessário para segurança, manutenção, conformidade ou melhoria.",
         ],
       },
       {
@@ -234,7 +234,7 @@ export const LEGAL_DOCUMENTS = {
       {
         title: "8. Disponibilidade, propriedade intelectual e limites de responsabilidade",
         paragraphs: [
-          "A plataforma é fornecida no estado operacional da versão atual. Não há promessa de disponibilidade irrestrita, ausência total de falhas ou adequação universal a todos os processos de recrutamento.",
+          "A plataforma é fornecida conforme seu estado operacional. Não há promessa de disponibilidade irrestrita, ausência total de falhas ou adequação universal a todos os processos de recrutamento.",
           "Marcas, identidade visual, código, textos institucionais, estrutura do serviço e demais elementos próprios da plataforma permanecem protegidos pela legislação aplicável e não podem ser copiados ou explorados fora dos limites permitidos por lei e por estes termos.",
           "Na extensão permitida pela legislação aplicável, o OpenTalentPool não se responsabiliza por decisões de contratação, negociações entre usuários, veracidade integral de informações fornecidas por terceiros ou danos indiretos decorrentes do uso do serviço gratuito.",
         ],
@@ -253,7 +253,7 @@ export const LEGAL_DOCUMENTS = {
     eyebrow: "Cookies",
     title: "Política de Cookies e Tecnologias Similares",
     description:
-      "Quais cookies, chaves locais e tecnologias similares existem hoje no OpenTalentPool, o que é essencial, o que é opcional e como a escolha pública de consentimento funciona.",
+      "Quais cookies, chaves locais e tecnologias similares o OpenTalentPool usa, o que é essencial, o que é opcional e como a escolha pública de consentimento funciona.",
     label: "Política de Cookies",
     path: LEGAL_POLICY_ROUTE.cookiesPolicy,
     policyKey: LEGAL_POLICY_KEY.cookiesPolicy,
@@ -261,8 +261,8 @@ export const LEGAL_DOCUMENTS = {
     effectiveDateLabel: LEGAL_DOCUMENT_EFFECTIVE_DATE_LABEL,
     summary: [
       "Cookie essencial de sessão para autenticação segura no backend e cookie essencial separado para lembrar a escolha pública feita no banner.",
-      "Tema, retomada local do desafio por e-mail e rascunhos locais do perfil só funcionam quando a pessoa aceita armazenamento opcional; o draft atual usa `professional_profile_draft:v2:*` e não persiste dados afirmativos nem o aceite afirmativo.",
-      "A versão atual não usa cookies opcionais de analytics, marketing ou publicidade, mas usa Cloudflare Turnstile como tecnologia anti-bot de terceiro.",
+      "Tema, retomada local do desafio por e-mail e rascunhos locais do perfil só funcionam quando a pessoa aceita armazenamento opcional; o rascunho usa `professional_profile_draft:v2:*` e não persiste dados afirmativos nem o aceite afirmativo.",
+      "A plataforma não usa cookies opcionais de analytics, marketing ou publicidade, mas usa Cloudflare Turnstile como tecnologia anti-bot de terceiro.",
     ],
     sections: [
       {
@@ -297,7 +297,7 @@ export const LEGAL_DOCUMENTS = {
         title: "4. Tecnologias de terceiro e segurança anti-bot",
         paragraphs: [
           "O OpenTalentPool usa Cloudflare Turnstile para proteção anti-bot em fluxos públicos de autenticação. Esse mecanismo envolve carregamento de script, frame e conexão com a infraestrutura da Cloudflare para verificar sinais técnicos e reduzir abuso automatizado.",
-          "Nesta fase, o produto não usa cookies opcionais de analytics, remarketing, publicidade comportamental ou compartilhamento comercial de audiência.",
+          "O produto não usa cookies opcionais de analytics, remarketing, publicidade comportamental ou compartilhamento comercial de audiência.",
         ],
       },
       {
@@ -305,7 +305,7 @@ export const LEGAL_DOCUMENTS = {
         paragraphs: [
           "No primeiro acesso, o OpenTalentPool exibe um banner com duas opções: aceitar armazenamento opcional ou continuar apenas com o essencial.",
           "A pessoa usuária pode reabrir as preferências pela própria política pública ou pelo banner quando disponível. Ao rejeitar armazenamento opcional, o produto mantém a sessão autenticada por cookie quando aplicável, mas deixa de usar tema persistido, continuidade local do OTP e rascunhos locais entre recargas.",
-          "Se versões futuras adicionarem analytics, publicidade ou novas tecnologias opcionais, esta política será atualizada antes do uso correspondente.",
+          "Se o produto adicionar analytics, publicidade ou novas tecnologias opcionais, esta política será atualizada antes do uso correspondente.",
         ],
       },
     ],
@@ -336,7 +336,7 @@ export const LEGAL_DOCUMENTS = {
       {
         title: "2. Dados afirmativos abrangidos e sensibilidade",
         paragraphs: [
-          "Os grupos afirmativos atualmente disponíveis podem envolver informações relacionadas a raça, etnia, deficiência, identidade de gênero ou pertencimento LGBTQIAPN+, temas que exigem tratamento reforçado, minimização e governança proporcional.",
+          "Os grupos afirmativos disponíveis no fluxo inclusivo podem envolver informações relacionadas a raça, etnia, deficiência, identidade de gênero ou pertencimento LGBTQIAPN+, temas que exigem tratamento reforçado, minimização e governança proporcional.",
           "Por isso, esse dado é sempre opcional, não público, fora da busca aberta e isolado do uso comum da plataforma.",
         ],
       },
@@ -352,8 +352,8 @@ export const LEGAL_DOCUMENTS = {
         title: "4. Regras para recrutadores",
         paragraphs: [
           "O recrutador autenticado só pode usar filtros afirmativos depois de aceitar a política operacional do fluxo, selecionar o tipo da vaga e registrar uma referência curta da oportunidade.",
-          "A busca técnica padrão continua mostrando perfis tecnicamente aderentes, inclusive de grupos minorizados, mesmo quando nenhum critério inclusivo está ativo.",
-          "Quando a busca inclusiva for usada, os perfis dentro do escopo afirmativo aparecem primeiro, mas os demais perfis tecnicamente aderentes continuam na mesma lista.",
+          "A busca técnica padrão mantém perfis tecnicamente aderentes, inclusive de grupos minorizados, mesmo quando nenhum critério inclusivo está ativo.",
+          "Quando a busca inclusiva for usada, os perfis dentro do escopo afirmativo aparecem primeiro, mas os demais perfis tecnicamente aderentes permanecem na mesma lista.",
           "É vedado usar essa funcionalidade para excluir currículos por critérios não técnicos, inferir atributos sensíveis fora da autodeclaração, tomar decisões discriminatórias, exportar listas paralelas ou justificar práticas incompatíveis com a legislação aplicável.",
         ],
       },

@@ -1504,7 +1504,7 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
                 Seu perfil só entra na descoberta quando você decide publicar.
               </h2>
               <p className="surface-dark-copy mt-4 text-sm leading-6">
-                Links públicos continuam abertos para qualquer visitante. O e-mail de contato, quando ativado, só aparece para recrutadores autenticados.
+                Links públicos permanecem abertos para qualquer visitante. O e-mail de contato, quando ativado, só aparece para recrutadores autenticados.
               </p>
 
               {publication.isPublished && publicProfileUrl ? (
@@ -1836,11 +1836,11 @@ const RecruiterDashboard = () => {
         </div>
 
         <section className="surface-dark mt-6 p-8">
-          <p className="eyebrow surface-dark-eyebrow">Como operar no 1.0</p>
+          <p className="eyebrow surface-dark-eyebrow">Como operar a curadoria</p>
           <div className="mt-4 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
               <h2 className="surface-dark-title text-3xl leading-tight">
-                A descoberta continua pública; a curadoria agora é sua.
+                A descoberta pública permanece aberta; a curadoria fica sob seu controle.
               </h2>
               <p className="surface-dark-copy mt-4 text-sm leading-6">
                 Favorite perfis relevantes, salve filtros úteis e deixe os alertas acompanharem novos matches.
