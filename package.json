@@ -2,6 +2,7 @@
   "name": "open-talent-pool",
   "private": true,
   "version": "1.0.0",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "ensure:dev-db": "node server/dev-db.js",

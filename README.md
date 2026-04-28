@@ -26,6 +26,8 @@ Plataforma pública e gratuita de descoberta de talentos em tecnologia.
 
 Para prompts, contexto de produto e convenções de engenharia do workspace, use [AGENTS.md](AGENTS.md) como referência principal.
 
+Governança pública do repositório: [contribuição](CONTRIBUTING.md), [segurança](SECURITY.md) e [licença MIT](LICENSE).
+
 ## Capacidades
 
 - Perfis profissionais reais com publicação manual
