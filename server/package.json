@@ -13,14 +13,14 @@
     "nodemon": "^3.1.10"
   },
   "dependencies": {
-    "bullmq": "^5.76.2",
+    "bullmq": "^5.76.3",
     "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "express": "^4.18.2",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "helmet": "^8.1.0",
     "ioredis": "^5.10.1",
     "morgan": "^1.10.0",
-    "nodemailer": "^8.0.5",
+    "nodemailer": "^8.0.7",
     "pg": "^8.11.0"
   }
 }
