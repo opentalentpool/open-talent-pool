@@ -1,0 +1,132 @@
+name: Docker Smoke
+
+on:
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - "docker-compose.yml"
+      - "nginx.conf"
+      - "docker/**"
+      - "server/**"
+      - "src/lib/**"
+      - ".env.example"
+      - ".dockerignore"
+      - "package.json"
+      - "server/package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/docker-smoke.yml"
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-smoke-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compose-smoke:
+    name: Compose production smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      COMPOSE_PROJECT_NAME: otp-ci-${{ github.run_id }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create synthetic Compose environment
+        env:
+          OTP_CI_TURNSTILE_VALUE: ci_turnstile_value_123456789
+        run: |
+          cat > .env <<EOF
+          VITE_API_URL=
+          VITE_TURNSTILE_SITE_KEY=1x00000000000000000000AA
+          APP_BASE_URL=http://127.0.0.1:18080
+          TRUSTED_ORIGINS=http://127.0.0.1:18080
+          WEB_PUBLISHED_PORT=18080
+          POSTGRES_PUBLISHED_PORT=15432
+          MAILPIT_SMTP_PUBLISHED_PORT=11025
+          MAILPIT_WEB_PUBLISHED_PORT=18025
+          POSTGRES_HOST=localhost
+          POSTGRES_PORT=5432
+          POSTGRES_DB=otp_ci
+          POSTGRES_USER=otp_ci
+          POSTGRES_PASSWORD=ci_postgres_password_123456789
+          AUTH_CODE_PEPPER=ci_auth_code_pepper_123456789
+          TURNSTILE_SECRET_KEY=${OTP_CI_TURNSTILE_VALUE}
+          TRUST_PROXY=false
+          COOKIE_DOMAIN=
+          COOKIE_SECURE=false
+          AUTH_SESSION_IDLE_HOURS=24
+          AUTH_SESSION_MAX_DAYS=7
+          INTERNAL_OPERATIONS_ADMIN_EMAIL=internal-admin@internal.ci.test
+          INTERNAL_ACCOUNT_EMAIL_DOMAIN=internal.ci.test
+          ALERTS_DISPATCH_INTERVAL_SECONDS=900
+          REDIS_USERNAME=otp_ci
+          REDIS_PASSWORD=ci_redis_password_123456789
+          MAIL_QUEUE_PREFIX=otp:ci:mail
+          MAIL_WORKER_CONCURRENCY=4
+          MAIL_OUTBOX_POLL_INTERVAL_MS=5000
+          MAIL_OUTBOX_BATCH_SIZE=25
+          MAIL_RETRY_MAX_ATTEMPTS=5
+          MAIL_RETRY_BASE_DELAY_MS=60000
+          SMTP_SERVER=127.0.0.1
+          SMTP_PORT=2525
+          SMTP_USER=ci@example.test
+          SMTP_PASS=ci_smtp_password_123456789
+          SMTP_SECURE=false
+          SMTP_AUTH_REQUIRED=true
+          SMTP_FROM=OpenTalentPool <ci@example.test>
+          DEBUG=false
+          OTP_IN_MEMORY_DB=false
+          ENABLE_TEST_ROUTES=false
+          EOF
+
+      - name: Validate Docker Compose config
+        run: docker compose --env-file .env config --quiet
+
+      - name: Build production images
+        run: docker compose --env-file .env build
+
+      - name: Start production stack
+        run: docker compose --env-file .env up -d db redis server web
+
+      - name: Smoke HTTP endpoints and headers
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --retry 2 --retry-delay 1 --retry-all-errors --silent --fail --show-error http://127.0.0.1:18080/api/health > /dev/null; then
+              break
+            fi
+
+            if [ "$attempt" -eq 60 ]; then
+              docker compose --env-file .env ps
+              docker compose --env-file .env logs --no-color --tail=200 server web
+              exit 1
+            fi
+
+            sleep 2
+          done
+
+          headers="$(mktemp)"
+          curl --fail --silent --show-error --head http://127.0.0.1:18080/ > "$headers"
+          curl --fail --silent --show-error http://127.0.0.1:18080/ > /dev/null
+          curl --fail --silent --show-error http://127.0.0.1:18080/api/health > /dev/null
+
+          grep -qi "^Content-Security-Policy:.*frame-ancestors 'none'" "$headers"
+          grep -qi '^X-Frame-Options: DENY' "$headers"
+          grep -qi '^X-Content-Type-Options: nosniff' "$headers"
+
+      - name: Show Compose diagnostics on failure
+        if: failure()
+        run: |
+          docker compose --env-file .env ps || true
+          docker compose --env-file .env logs --no-color --tail=200 server web db redis || true
+
+      - name: Stop production stack
+        if: always()
+        run: docker compose --env-file .env down -v --remove-orphans
