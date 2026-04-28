@@ -122,7 +122,7 @@ test("registra acesso ao contato, permite denúncia do recrutador e suspende a c
 
   const professionalEmail = buildEmail("moderation-professional");
   const recruiterEmail = buildEmail("moderation-recruiter");
-  const adminEmail = "administrator@opentalentpool.org";
+  const adminEmail = "internal-admin@opentalentpool.local";
 
   const professionalContext = await browser.newContext({ baseURL: "http://127.0.0.1:8180" });
   const professionalPage = await professionalContext.newPage();

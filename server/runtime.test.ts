@@ -24,6 +24,14 @@ const ORIGINAL_ENV = {
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   MAIL_QUEUE_PREFIX: process.env.MAIL_QUEUE_PREFIX,
   TRUST_PROXY: process.env.TRUST_PROXY,
+  INTERNAL_OPERATIONS_ADMIN_EMAIL: process.env.INTERNAL_OPERATIONS_ADMIN_EMAIL,
+  INTERNAL_ACCOUNT_EMAIL_DOMAIN: process.env.INTERNAL_ACCOUNT_EMAIL_DOMAIN,
+  SMTP_SERVER: process.env.SMTP_SERVER,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_USER: process.env.SMTP_USER,
+  SMTP_PASS: process.env.SMTP_PASS,
+  SMTP_AUTH_REQUIRED: process.env.SMTP_AUTH_REQUIRED,
+  SMTP_FROM: process.env.SMTP_FROM,
 };
 
 afterEach(() => {
@@ -59,6 +67,9 @@ describe("getRuntimeConfig", () => {
     expect(config.redisUsername).toBe("");
     expect(config.redisPassword).toBe("");
     expect(config.mailQueuePrefix).toBe("otp:mail");
+    expect(config.internalOperationsAdminEmail).toBe("internal-admin@opentalentpool.local");
+    expect(config.internalAccountEmailDomain).toBe("opentalentpool.local");
+    expect(config.smtpAuthRequired).toBe(false);
     expect(config.mailWorkerConcurrency).toBe(4);
     expect(config.mailOutboxPollIntervalMs).toBe(5000);
     expect(config.mailOutboxBatchSize).toBe(25);
@@ -67,6 +78,26 @@ describe("getRuntimeConfig", () => {
     expect(config.trustedOrigins).toEqual([]);
     expect(config.inMemoryDb).toBe(false);
     expect(config.enableTestRoutes).toBe(false);
+  });
+
+  it("aceita SMTP pessoal do Gmail com autenticação explícita no desenvolvimento", () => {
+    const config = getRuntimeConfig({
+      SMTP_SERVER: "smtp.gmail.com",
+      SMTP_PORT: "465",
+      SMTP_USER: "person@gmail.com",
+      SMTP_PASS: "gmail-app-password",
+      SMTP_SECURE: "true",
+      SMTP_AUTH_REQUIRED: "true",
+      SMTP_FROM: "OpenTalentPool <person@gmail.com>",
+    });
+
+    expect(config.smtpServer).toBe("smtp.gmail.com");
+    expect(config.smtpPort).toBe(465);
+    expect(config.smtpUser).toBe("person@gmail.com");
+    expect(config.smtpPass).toBe("gmail-app-password");
+    expect(config.smtpSecure).toBe(true);
+    expect(config.smtpAuthRequired).toBe(true);
+    expect(config.smtpFrom).toBe("OpenTalentPool <person@gmail.com>");
   });
 
   it("prioriza .env.local sobre .env mantendo suporte a arquivos na raiz e em server", () => {
@@ -99,6 +130,72 @@ describe("getRuntimeConfig", () => {
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }
+  });
+});
+
+describe("production runtime guardrails", () => {
+  const secureProductionEnv = {
+    NODE_ENV: "production",
+    OTP_IN_MEMORY_DB: "true",
+    POSTGRES_PASSWORD: "not-a-placeholder",
+    AUTH_CODE_PEPPER: "very-secret-auth-pepper",
+    TURNSTILE_SECRET_KEY: "very-secret-turnstile-key",
+    REDIS_USERNAME: "otp_mail",
+    REDIS_PASSWORD: "very-secret-redis-password",
+    MAIL_QUEUE_PREFIX: "otp:mail",
+    INTERNAL_OPERATIONS_ADMIN_EMAIL: "ops-root@example.internal",
+    INTERNAL_ACCOUNT_EMAIL_DOMAIN: "example.internal",
+    SMTP_SERVER: "smtp.gmail.com",
+    SMTP_PORT: "465",
+    SMTP_USER: "person@example.com",
+    SMTP_PASS: "gmail-app-password",
+    SMTP_SECURE: "true",
+    SMTP_AUTH_REQUIRED: "true",
+    SMTP_FROM: "OpenTalentPool <person@example.com>",
+  };
+
+  it("rejeita placeholders sanitizados no ambiente de produção", async () => {
+    await expect(
+      createServerRuntime({
+        env: {
+          ...secureProductionEnv,
+          POSTGRES_PASSWORD: "replace-with-postgres-password",
+        },
+      }),
+    ).rejects.toThrow("POSTGRES_PASSWORD must be configured with a non-placeholder value in production.");
+  });
+
+  it("rejeita Turnstile de teste e identidade administrativa local em produção", async () => {
+    await expect(
+      createServerRuntime({
+        env: {
+          ...secureProductionEnv,
+          TURNSTILE_SECRET_KEY: TURNSTILE_TEST_SECRET,
+        },
+      }),
+    ).rejects.toThrow("TURNSTILE_SECRET_KEY must not use the Cloudflare test secret in production.");
+
+    await expect(
+      createServerRuntime({
+        env: {
+          ...secureProductionEnv,
+          INTERNAL_OPERATIONS_ADMIN_EMAIL: "internal-admin@opentalentpool.local",
+          INTERNAL_ACCOUNT_EMAIL_DOMAIN: "opentalentpool.local",
+        },
+      }),
+    ).rejects.toThrow("INTERNAL_OPERATIONS_ADMIN_EMAIL and INTERNAL_ACCOUNT_EMAIL_DOMAIN must be configured in production.");
+  });
+
+  it("exige SMTP autenticado em produção por padrão", async () => {
+    await expect(
+      createServerRuntime({
+        env: {
+          ...secureProductionEnv,
+          SMTP_USER: "",
+          SMTP_PASS: "",
+        },
+      }),
+    ).rejects.toThrow("SMTP_USER and SMTP_PASS must be configured with non-placeholder values in production.");
   });
 });
 

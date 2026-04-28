@@ -11,6 +11,7 @@ import {
 import { isPublicAccountRole, normalizeAccountRoleList } from "../src/lib/account-roles.js";
 import { isLocalDevelopmentHostname, isLocalDevelopmentOrigin } from "../src/lib/development-hosts.js";
 import {
+  INTERNAL_ACCOUNT_EMAIL_DOMAIN,
   INTERNAL_OPERATIONS_ADMIN_EMAIL,
   INTERNAL_OPERATIONS_ADMIN_NAME,
   INTERNAL_OPERATIONS_ADMIN_ROLE,
@@ -116,6 +117,14 @@ const PROFILE_CONTACT_EMAIL_VERIFY_FAILURE_LIMITS = [
     tripAtOrAbove: true,
   },
 ];
+
+function resolveInternalAccountConfig(config = {}) {
+  return {
+    ...config,
+    internalOperationsAdminEmail: config.internalOperationsAdminEmail || INTERNAL_OPERATIONS_ADMIN_EMAIL,
+    internalAccountEmailDomain: config.internalAccountEmailDomain || INTERNAL_ACCOUNT_EMAIL_DOMAIN,
+  };
+}
 
 function noopLogger() {
   return undefined;
@@ -630,7 +639,7 @@ function buildInternalAdminDomainRequiredError() {
     status: 403,
     payload: {
       error: "internal_admin_domain_required",
-      message: "Somente contas internas do domínio opentalentpool.org podem receber administração.",
+      message: "Somente contas internas do domínio configurado podem receber administração.",
     },
   };
 }
@@ -689,32 +698,32 @@ function isAdministratorRole(value) {
   return value === "administrator" || value === "admin";
 }
 
-function getChallengeTtlMs(email) {
-  return isInternalOperationsAdminEmail(email)
+function getChallengeTtlMs(email, config) {
+  return isInternalOperationsAdminEmail(email, config)
     ? INTERNAL_OPERATIONS_ADMIN_CHALLENGE_TTL_MS
     : CHALLENGE_TTL_MS;
 }
 
-function getChallengeMaxAttempts(email) {
-  return isInternalOperationsAdminEmail(email)
+function getChallengeMaxAttempts(email, config) {
+  return isInternalOperationsAdminEmail(email, config)
     ? INTERNAL_OPERATIONS_ADMIN_CHALLENGE_MAX_ATTEMPTS
     : CHALLENGE_MAX_ATTEMPTS;
 }
 
-function getSendLimits(email) {
-  return isInternalOperationsAdminEmail(email)
+function getSendLimits(email, config) {
+  return isInternalOperationsAdminEmail(email, config)
     ? INTERNAL_OPERATIONS_ADMIN_SEND_LIMITS
     : SEND_LIMITS;
 }
 
-function getVerifyFailureLimits(email) {
-  return isInternalOperationsAdminEmail(email)
+function getVerifyFailureLimits(email, config) {
+  return isInternalOperationsAdminEmail(email, config)
     ? INTERNAL_OPERATIONS_ADMIN_VERIFY_FAILURE_LIMITS
     : VERIFY_FAILURE_LIMITS;
 }
 
 function getSessionDurationsForUser(user, config) {
-  if (isInternalOperationsAdminUser(user)) {
+  if (isInternalOperationsAdminUser(user, config)) {
     return {
       idleMs: INTERNAL_OPERATIONS_ADMIN_SESSION_IDLE_MS,
       absoluteMs: INTERNAL_OPERATIONS_ADMIN_SESSION_MAX_MS,
@@ -779,8 +788,8 @@ async function fetchUserById(executor, userId) {
   return result.rows[0] || null;
 }
 
-async function ensureInternalOperationsAdminAccount(executor, email, now = new Date()) {
-  if (!isInternalOperationsAdminEmail(email)) {
+async function ensureInternalOperationsAdminAccount(executor, email, config, now = new Date()) {
+  if (!isInternalOperationsAdminEmail(email, config)) {
     return fetchUserByEmail(executor, email);
   }
 
@@ -947,8 +956,8 @@ function normalizePublicRoleSnapshot(metadata) {
   );
 }
 
-function mapAdminManagedUser(row) {
-  const isReservedInternalAdmin = isInternalOperationsAdminEmail(row.email);
+function mapAdminManagedUser(row, config) {
+  const isReservedInternalAdmin = isInternalOperationsAdminEmail(row.email, config);
   const isAdministrator = isAdministratorRole(row.role);
   const latestGrantMetadata = row.latest_grant_metadata_json || {};
   const restorablePublicRoles = normalizePublicRoleSnapshot(latestGrantMetadata);
@@ -964,7 +973,7 @@ function mapAdminManagedUser(row) {
       !isReservedInternalAdmin &&
       !isAdministrator &&
       row.is_verified &&
-      isEligibleInternalAdministratorEmail(row.email),
+      isEligibleInternalAdministratorEmail(row.email, config),
     ),
     canRevoke: Boolean(
       !isReservedInternalAdmin &&
@@ -982,7 +991,7 @@ function mapAdminManagedUser(row) {
   };
 }
 
-async function listManagedInternalAdminUsers(executor) {
+async function listManagedInternalAdminUsers(executor, config) {
   const result = await executor.query(
     `
       SELECT
@@ -1000,7 +1009,7 @@ async function listManagedInternalAdminUsers(executor) {
         LOWER(COALESCE(name, '')),
         id DESC
     `,
-    [INTERNAL_OPERATIONS_ADMIN_EMAIL, `%@opentalentpool.org`],
+    [config.internalOperationsAdminEmail, `%@${config.internalAccountEmailDomain}`],
   );
 
   if (result.rows.length === 0) {
@@ -1049,7 +1058,7 @@ async function listManagedInternalAdminUsers(executor) {
       last_action_created_at: latestAction?.created_at || null,
       last_action_created_by_name: latestAction?.created_by_name || null,
       latest_grant_metadata_json: latestGrant?.metadata_json || null,
-    });
+    }, config);
   });
 }
 
@@ -1181,6 +1190,7 @@ export function createAuthService({
   logger = console,
   captchaVerifier = defaultCaptchaVerifier,
 }) {
+  config = resolveInternalAccountConfig(config);
   const safeLogger = normalizeLogger(logger);
   const expectedHostname = getExpectedHostname(config);
 
@@ -1231,7 +1241,7 @@ export function createAuthService({
   }
 
   async function enforceSendLimits(executor, email, remoteIp, now) {
-    for (const limit of getSendLimits(email)) {
+    for (const limit of getSendLimits(email, config)) {
       const subject = limit.key === "email" ? email : remoteIp;
       const rateLimit = await consumeRateLimit(executor, {
         ...limit,
@@ -1251,7 +1261,7 @@ export function createAuthService({
   }
 
   async function enforceVerifyBlocks(executor, { email, remoteIp, now }) {
-    for (const limit of getVerifyFailureLimits(email)) {
+    for (const limit of getVerifyFailureLimits(email, config)) {
       const subject = limit.key === "email" ? email : remoteIp;
 
       if (!subject) {
@@ -1273,7 +1283,7 @@ export function createAuthService({
   async function recordVerifyFailure(executor, { email, remoteIp, now }) {
     const results = [];
 
-    for (const limit of getVerifyFailureLimits(email)) {
+    for (const limit of getVerifyFailureLimits(email, config)) {
       const subject = limit.key === "email" ? email : remoteIp;
 
       if (!subject) {
@@ -1440,7 +1450,7 @@ export function createAuthService({
     const now = new Date();
     await verifyCaptchaOrThrow(captchaToken, remoteIp);
 
-    if (flow === "signup" && isInternalOperationsAdminEmail(email)) {
+    if (flow === "signup" && isInternalOperationsAdminEmail(email, config)) {
       throw buildPublicSignupNotAllowedError();
     }
 
@@ -1494,8 +1504,8 @@ export function createAuthService({
           shouldSendEmail = true;
         }
       } else {
-        if (isInternalOperationsAdminEmail(email)) {
-          user = await ensureInternalOperationsAdminAccount(client, email, now);
+        if (isInternalOperationsAdminEmail(email, config)) {
+          user = await ensureInternalOperationsAdminAccount(client, email, config, now);
           challengePurpose = "login";
           shouldSendEmail = true;
         } else {
@@ -1517,9 +1527,9 @@ export function createAuthService({
       challengeIdToCleanup = challengeId;
       const code = generateCode();
       const codeHash = hashChallengeCode(challengeId, code, config.authCodePepper);
-      const expiresAt = futureDate(now, getChallengeTtlMs(email));
+      const expiresAt = futureDate(now, getChallengeTtlMs(email, config));
       const resendAvailableAt = futureDate(now, CHALLENGE_COOLDOWN_MS);
-      const maxAttempts = getChallengeMaxAttempts(email);
+      const maxAttempts = getChallengeMaxAttempts(email, config);
 
       const challengeInsert = await client.query(
         `
@@ -1969,8 +1979,8 @@ export function createAuthService({
 
       let user = userResult.rows[0] || null;
 
-      if (user && isInternalOperationsAdminUser(user)) {
-        user = await ensureInternalOperationsAdminAccount(client, user.email, now);
+      if (user && isInternalOperationsAdminUser(user, config)) {
+        user = await ensureInternalOperationsAdminAccount(client, user.email, config, now);
       }
 
       if (!user) {
@@ -2129,8 +2139,8 @@ export function createAuthService({
       };
     }
 
-    if (user && isInternalOperationsAdminUser(user)) {
-      user = await ensureInternalOperationsAdminAccount(pool, user.email, now);
+    if (user && isInternalOperationsAdminUser(user, config)) {
+      user = await ensureInternalOperationsAdminAccount(pool, user.email, config, now);
     }
 
     if (user.account_status === "suspended") {
@@ -2155,7 +2165,7 @@ export function createAuthService({
     }
 
     const { availableRoles, defaultActiveRole } = await resolveUserRoles(pool, user.id, user.role, now);
-    const forcedInternalRole = isInternalOperationsAdminUser(user) ? INTERNAL_OPERATIONS_ADMIN_ROLE : null;
+    const forcedInternalRole = isInternalOperationsAdminUser(user, config) ? INTERNAL_OPERATIONS_ADMIN_ROLE : null;
     const activeRole = forcedInternalRole
       || (session.active_role && availableRoles.includes(session.active_role)
         ? session.active_role
@@ -2226,7 +2236,7 @@ export function createAuthService({
       };
     }
 
-    if (isInternalOperationsAdminUser(user)) {
+    if (isInternalOperationsAdminUser(user, config)) {
       throw buildInternalAccountRoleLockedError();
     }
 
@@ -2269,7 +2279,7 @@ export function createAuthService({
       };
     }
 
-    if (isInternalOperationsAdminUser(user)) {
+    if (isInternalOperationsAdminUser(user, config)) {
       throw buildInternalAccountRoleLockedError();
     }
 
@@ -2294,7 +2304,7 @@ export function createAuthService({
 
   async function listAdminUsers({ query = "" } = {}) {
     const normalizedQuery = String(query || "").trim().toLowerCase();
-    const users = await listManagedInternalAdminUsers(pool);
+    const users = await listManagedInternalAdminUsers(pool, config);
 
     if (!normalizedQuery) {
       return { users };
@@ -2326,11 +2336,11 @@ export function createAuthService({
         };
       }
 
-      if (isInternalOperationsAdminUser(user)) {
+      if (isInternalOperationsAdminUser(user, config)) {
         throw buildReservedInternalAdminLockedError();
       }
 
-      if (!isInternalAccountDomainEmail(user.email)) {
+      if (!isInternalAccountDomainEmail(user.email, config)) {
         throw buildInternalAdminDomainRequiredError();
       }
 
@@ -2371,7 +2381,7 @@ export function createAuthService({
         now,
       });
 
-      const managedUsers = await listManagedInternalAdminUsers(client);
+      const managedUsers = await listManagedInternalAdminUsers(client, config);
       const managedUser = managedUsers.find((candidate) => candidate.id === Number(user.id)) || null;
 
       await client.query("COMMIT");
@@ -2405,7 +2415,7 @@ export function createAuthService({
         };
       }
 
-      if (isInternalOperationsAdminUser(user)) {
+      if (isInternalOperationsAdminUser(user, config)) {
         throw buildReservedInternalAdminLockedError();
       }
 
@@ -2446,7 +2456,7 @@ export function createAuthService({
         now,
       });
 
-      const managedUsers = await listManagedInternalAdminUsers(client);
+      const managedUsers = await listManagedInternalAdminUsers(client, config);
       const managedUser = managedUsers.find((candidate) => candidate.id === Number(user.id)) || null;
 
       await client.query("COMMIT");

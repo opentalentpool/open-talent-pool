@@ -11,7 +11,7 @@ if [ "$REDIS_USERNAME" = "default" ]; then
 fi
 
 case "$REDIS_PASSWORD" in
-  change_me|change_this_in_production|replace_me|example|"")
+  change_me|change_this_in_production|replace_me|replace-with-*|placeholder|example|"")
     echo "REDIS_PASSWORD must not be a placeholder" >&2
     exit 1
     ;;

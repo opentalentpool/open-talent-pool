@@ -19,7 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TurnstileField } from "@/components/TurnstileField";
 import { LEGAL_POLICY_ROUTE } from "@/lib/legal-policies.js";
-import { INTERNAL_OPERATIONS_ADMIN_ROLE, isInternalOperationsAdminUser } from "@/lib/internal-accounts.js";
+import { INTERNAL_OPERATIONS_ADMIN_ROLE } from "@/lib/internal-accounts.js";
 import {
   clearPendingAuthSession,
   loadPendingAuthSession,
@@ -231,7 +231,7 @@ const AuthNoticeCard = ({ notice, className = "" }: { notice: AuthNotice | null;
 };
 
 function resolvePostAuthPath(user: AuthUser | null | undefined, safeNextPath: string | null) {
-  if (user && (isInternalOperationsAdminUser(user) || user.activeRole === INTERNAL_OPERATIONS_ADMIN_ROLE)) {
+  if (user?.activeRole === INTERNAL_OPERATIONS_ADMIN_ROLE) {
     return "/dashboard";
   }
 

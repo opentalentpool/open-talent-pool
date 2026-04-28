@@ -1754,9 +1754,9 @@ function createApp({
     try {
       const [reports, hiddenProfiles, suspendedAccounts, restrictedReporters, recentActions] = await Promise.all([
         listModerationReports(pool),
-        listHiddenProfiles(pool),
-        listSuspendedAccounts(pool),
-        listRestrictedReporters(pool),
+        listHiddenProfiles(pool, { reservedAdminEmail: config.internalOperationsAdminEmail }),
+        listSuspendedAccounts(pool, { reservedAdminEmail: config.internalOperationsAdminEmail }),
+        listRestrictedReporters(pool, new Date(), { reservedAdminEmail: config.internalOperationsAdminEmail }),
         listRecentModerationActions(pool),
       ]);
 

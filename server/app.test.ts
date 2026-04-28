@@ -630,7 +630,7 @@ describe("createApp", () => {
 
     const candidate = await createAndVerifyUser(app, sendCodeEmail, {
       name: "Teammate Internal",
-      email: "teammate@opentalentpool.org",
+      email: "teammate@opentalentpool.local",
       role: "professional",
     });
 
@@ -650,7 +650,7 @@ describe("createApp", () => {
     expect(listBeforePromotion.body.users).toEqual([
       expect.objectContaining({
         id: candidate.user.id,
-        email: "teammate@opentalentpool.org",
+        email: "teammate@opentalentpool.local",
         isVerified: true,
         isAdministrator: false,
         isReservedInternalAdmin: false,
@@ -669,7 +669,7 @@ describe("createApp", () => {
     expect(promote.status).toBe(200);
     expect(promote.body.user).toMatchObject({
       id: candidate.user.id,
-      email: "teammate@opentalentpool.org",
+      email: "teammate@opentalentpool.local",
       isVerified: true,
       isAdministrator: true,
       isReservedInternalAdmin: false,
@@ -727,7 +727,7 @@ describe("createApp", () => {
       profileWasPublished: true,
     });
 
-    const loginAsPromotedAdmin = await signInWithCode(app, sendCodeEmail, "teammate@opentalentpool.org");
+    const loginAsPromotedAdmin = await signInWithCode(app, sendCodeEmail, "teammate@opentalentpool.local");
     expect(loginAsPromotedAdmin.verification.body.user).toMatchObject({
       role: "administrator",
       activeRole: "administrator",
@@ -746,14 +746,14 @@ describe("createApp", () => {
 
     const pendingInternalSignup = await signUp(app, {
       name: "Pending Internal",
-      email: "pending@opentalentpool.org",
+      email: "pending@opentalentpool.local",
       role: "professional",
     });
     expect(pendingInternalSignup.status).toBe(200);
 
     const pendingInternalUser = await pool.query(
       "SELECT id FROM users WHERE email = $1 LIMIT 1",
-      ["pending@opentalentpool.org"],
+      ["pending@opentalentpool.local"],
     );
 
     const actingAdmin = await signInWithCode(app, sendCodeEmail, INTERNAL_OPERATIONS_ADMIN_EMAIL);
@@ -789,7 +789,7 @@ describe("createApp", () => {
 
     const candidate = await createAndVerifyUser(app, sendCodeEmail, {
       name: "Dual Internal",
-      email: "dual-internal@opentalentpool.org",
+      email: "dual-internal@opentalentpool.local",
       role: "professional",
     });
 
@@ -817,7 +817,7 @@ describe("createApp", () => {
       });
     expect(promote.status).toBe(200);
 
-    const candidateAdminSession = await signInWithCode(app, sendCodeEmail, "dual-internal@opentalentpool.org");
+    const candidateAdminSession = await signInWithCode(app, sendCodeEmail, "dual-internal@opentalentpool.local");
     expect(candidateAdminSession.verification.body.user.availableRoles).toEqual(["administrator"]);
 
     const revoke = await request(app)
@@ -830,7 +830,7 @@ describe("createApp", () => {
     expect(revoke.status).toBe(200);
     expect(revoke.body.user).toMatchObject({
       id: candidate.user.id,
-      email: "dual-internal@opentalentpool.org",
+      email: "dual-internal@opentalentpool.local",
       isAdministrator: false,
       canPromote: true,
       canRevoke: false,
@@ -883,7 +883,7 @@ describe("createApp", () => {
       restoredLegacyRole: "professional",
     });
 
-    const restoredLogin = await signInWithCode(app, sendCodeEmail, "dual-internal@opentalentpool.org");
+    const restoredLogin = await signInWithCode(app, sendCodeEmail, "dual-internal@opentalentpool.local");
     expect(restoredLogin.verification.body.user).toMatchObject({
       activeRole: "professional",
       availableRoles: expect.arrayContaining(["professional", "recruiter"]),
@@ -896,7 +896,7 @@ describe("createApp", () => {
 
     const internal = await createAndVerifyUser(app, sendCodeEmail, {
       name: "Test Route Internal",
-      email: "test-route@opentalentpool.org",
+      email: "test-route@opentalentpool.local",
       role: "professional",
     });
     const external = await createAndVerifyUser(app, sendCodeEmail, {
@@ -907,7 +907,7 @@ describe("createApp", () => {
 
     const internalPromotion = await request(app)
       .post("/api/test/users/promote-admin")
-      .send({ email: "test-route@opentalentpool.org" });
+      .send({ email: "test-route@opentalentpool.local" });
     expect(internalPromotion.status).toBe(200);
 
     const externalPromotion = await request(app)

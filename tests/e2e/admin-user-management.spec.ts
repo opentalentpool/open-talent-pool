@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 test.setTimeout(90_000);
 
 function buildInternalEmail(prefix: string) {
-  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@opentalentpool.org`;
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}@opentalentpool.local`;
 }
 
 async function getLatestVerificationCode(page: Page, email: string) {
@@ -82,7 +82,7 @@ test("permite promover e revogar um administrador interno pelo backoffice", asyn
 
   const candidateEmail = buildInternalEmail("admin-candidate");
   const candidateName = "Teammate Internal";
-  const reservedAdminEmail = "administrator@opentalentpool.org";
+  const reservedAdminEmail = "internal-admin@opentalentpool.local";
 
   const candidateContext = await browser.newContext({ baseURL: "http://127.0.0.1:8180" });
   const candidatePage = await candidateContext.newPage();

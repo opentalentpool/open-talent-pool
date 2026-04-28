@@ -19,9 +19,15 @@ import {
   buildProfileFreshnessEmail,
   buildSavedSearchAlertEmail,
 } from "./email-templates.js";
+import {
+  DEFAULT_INTERNAL_ACCOUNT_EMAIL_DOMAIN,
+  DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL,
+  normalizeInternalAccountEmail,
+} from "../src/lib/internal-accounts.js";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const schemaPath = path.join(currentDir, "db", "schema.sql");
+const TURNSTILE_TEST_SECRET = "1x0000000000000000000000000000000AA";
 
 export function getEnvironmentFiles() {
   return [
@@ -58,12 +64,17 @@ function isPlaceholderSecret(value) {
     return true;
   }
 
+  if (normalized.startsWith("replace-with-") || normalized.startsWith("replace_me")) {
+    return true;
+  }
+
   return [
     "change_me",
     "change_this_in_production",
     "change_this_secret",
     "dev-only-auth-pepper",
     "replace_me",
+    "placeholder",
     "example",
   ].includes(normalized);
 }
@@ -121,6 +132,10 @@ function assertSecureRuntimeConfig(config) {
     throw new Error("TURNSTILE_SECRET_KEY must be configured with a real secret in production.");
   }
 
+  if (config.turnstileSecretKey === TURNSTILE_TEST_SECRET) {
+    throw new Error("TURNSTILE_SECRET_KEY must not use the Cloudflare test secret in production.");
+  }
+
   if (!config.redisUsername || config.redisUsername === "default") {
     throw new Error("REDIS_USERNAME must be configured with a dedicated ACL user in production.");
   }
@@ -131,6 +146,27 @@ function assertSecureRuntimeConfig(config) {
 
   if (!config.mailQueuePrefix) {
     throw new Error("MAIL_QUEUE_PREFIX must be configured in production.");
+  }
+
+  if (
+    config.internalOperationsAdminEmail === DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL ||
+    config.internalAccountEmailDomain === DEFAULT_INTERNAL_ACCOUNT_EMAIL_DOMAIN ||
+    !config.internalOperationsAdminEmail ||
+    !config.internalAccountEmailDomain
+  ) {
+    throw new Error("INTERNAL_OPERATIONS_ADMIN_EMAIL and INTERNAL_ACCOUNT_EMAIL_DOMAIN must be configured in production.");
+  }
+
+  if (!config.internalOperationsAdminEmail.endsWith(`@${config.internalAccountEmailDomain}`)) {
+    throw new Error("INTERNAL_OPERATIONS_ADMIN_EMAIL must belong to INTERNAL_ACCOUNT_EMAIL_DOMAIN.");
+  }
+
+  if (!config.smtpServer || !config.smtpPort || !config.smtpFrom) {
+    throw new Error("SMTP_SERVER, SMTP_PORT and SMTP_FROM must be configured in production.");
+  }
+
+  if (config.smtpAuthRequired && (isPlaceholderSecret(config.smtpUser) || isPlaceholderSecret(config.smtpPass))) {
+    throw new Error("SMTP_USER and SMTP_PASS must be configured with non-placeholder values in production.");
   }
 
   if (config.debug) {
@@ -161,6 +197,7 @@ export function getRuntimeConfig(env = process.env) {
     smtpUser: env.SMTP_USER,
     smtpPass: env.SMTP_PASS,
     smtpSecure: parseBooleanEnv(env.SMTP_SECURE, false),
+    smtpAuthRequired: parseBooleanEnv(env.SMTP_AUTH_REQUIRED, isProduction),
     smtpFrom: env.SMTP_FROM,
     appBaseUrl: env.APP_BASE_URL || "http://localhost:8080",
     redisUrl: redis.redisUrl,
@@ -186,6 +223,12 @@ export function getRuntimeConfig(env = process.env) {
     trustProxy: parseBooleanEnv(env.TRUST_PROXY, false),
     inMemoryDb: parseBooleanEnv(env.OTP_IN_MEMORY_DB, false),
     enableTestRoutes: parseBooleanEnv(env.ENABLE_TEST_ROUTES, false),
+    internalOperationsAdminEmail: normalizeInternalAccountEmail(
+      env.INTERNAL_OPERATIONS_ADMIN_EMAIL || DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL,
+    ),
+    internalAccountEmailDomain: normalizeInternalAccountEmail(
+      env.INTERNAL_ACCOUNT_EMAIL_DOMAIN || DEFAULT_INTERNAL_ACCOUNT_EMAIL_DOMAIN,
+    ),
     debug:
       parseBooleanEnv(env.DEBUG, false) ||
       String(env.LOG_LEVEL || "").toLowerCase() === "debug",
@@ -284,13 +327,15 @@ export class EmailDeliveryError extends Error {
 }
 
 function createEmailClient(config, logger = console, recorder = createEmailRecorder()) {
+  const hasSmtpEndpoint = Boolean(config.smtpServer && config.smtpPort);
+  const hasSmtpAuth = Boolean(config.smtpUser && config.smtpPass);
   const transporter =
-    !config.enableTestRoutes && config.smtpServer && config.smtpPort && config.smtpUser && config.smtpPass
+    !config.enableTestRoutes && hasSmtpEndpoint && (!config.smtpAuthRequired || hasSmtpAuth)
       ? nodemailer.createTransport({
           host: config.smtpServer,
           port: config.smtpPort,
           secure: config.smtpSecure,
-          auth: { user: config.smtpUser, pass: config.smtpPass },
+          auth: hasSmtpAuth ? { user: config.smtpUser, pass: config.smtpPass } : undefined,
         })
       : null;
 

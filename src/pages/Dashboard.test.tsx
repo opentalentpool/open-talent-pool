@@ -243,7 +243,7 @@ function buildAdminUsersResponse() {
       {
         id: 12,
         name: "Teammate Internal",
-        email: "teammate@opentalentpool.org",
+        email: "teammate@opentalentpool.local",
         isVerified: true,
         isAdministrator: false,
         isReservedInternalAdmin: false,
@@ -254,7 +254,7 @@ function buildAdminUsersResponse() {
       {
         id: 13,
         name: "Ops Admin",
-        email: "ops-admin@opentalentpool.org",
+        email: "ops-admin@opentalentpool.local",
         isVerified: true,
         isAdministrator: true,
         isReservedInternalAdmin: false,
@@ -270,7 +270,7 @@ function buildAdminUsersResponse() {
       {
         id: 14,
         name: "Operações internas",
-        email: "administrator@opentalentpool.org",
+        email: "internal-admin@opentalentpool.local",
         isVerified: true,
         isAdministrator: true,
         isReservedInternalAdmin: true,
@@ -1957,7 +1957,7 @@ describe("Dashboard", () => {
     expect(screen.getByRole("heading", { name: /gestão de administradores internos/i })).toBeInTheDocument();
     expect(screen.getByText(/teammate internal/i)).toBeInTheDocument();
     expect(screen.getByText(/ops admin/i)).toBeInTheDocument();
-    expect(screen.queryByText(/administrator@opentalentpool\.org/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/internal-admin@opentalentpool\.local/i)).not.toBeInTheDocument();
   });
 
   it("permite promover uma conta interna com motivo válido", async () => {

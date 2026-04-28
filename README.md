@@ -49,10 +49,12 @@ pnpm run dev
 ```
 
 Se `POSTGRES_HOST=localhost` e o banco ainda não estiver disponível, o projeto tentará subir o serviço `db` do `docker compose` antes de iniciar a API.
+O `.env.example` vem pronto para desenvolvimento com Mailpit em `localhost:1025`; nesse modo o `pnpm run dev` também garante o serviço `mailpit` e a inbox fica em `http://localhost:8025`.
 Se a porta configurada em `PORT` já estiver ocupada, o comando falha antes de abrir o frontend para evitar uma sessão parcialmente quebrada; nesse caso, encerre a sessão anterior do backend ou ajuste `PORT` no `.env.local`.
 
 - Frontend: `http://localhost:8080`
 - API: `http://localhost:4000`
+- Inbox local: `http://localhost:8025`
 
 ## Variáveis de ambiente
 
@@ -69,6 +71,36 @@ Use `.env.example` como referência de chaves e formatos aceitos. O arquivo cont
 `REDIS_USERNAME`, `REDIS_PASSWORD` e `MAIL_QUEUE_PREFIX` são obrigatórios em produção. O runtime rejeita o boot com usuário `default`, senha placeholder ou prefixo vazio.
 
 Em `localhost` e `127.0.0.1`, o fluxo local aceita o token dummy oficial do Turnstile apenas fora de produção para não travar autenticação durante desenvolvimento e testes. Em produção, a validação continua fail-closed com verificação real no Cloudflare.
+
+`INTERNAL_OPERATIONS_ADMIN_EMAIL` e `INTERNAL_ACCOUNT_EMAIL_DOMAIN` definem a conta administrativa operacional reservada. Os valores locais do `.env.example` são apenas para desenvolvimento; produção rejeita esses defaults.
+
+### SMTP local, Mailpit e Gmail
+
+Por padrão, o desenvolvimento usa Mailpit sem autenticação:
+
+```env
+SMTP_SERVER=localhost
+SMTP_PORT=1025
+SMTP_USER=
+SMTP_PASS=
+SMTP_SECURE=false
+SMTP_AUTH_REQUIRED=false
+SMTP_FROM=OpenTalentPool <dev@opentalentpool.local>
+```
+
+Para usar SMTP pessoal do Gmail no desenvolvimento, edite o `.env` local:
+
+```env
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=seu.email@gmail.com
+SMTP_PASS=sua-senha-de-app-do-gmail
+SMTP_SECURE=true
+SMTP_AUTH_REQUIRED=true
+SMTP_FROM=OpenTalentPool <seu.email@gmail.com>
+```
+
+O Gmail exige senha de app, normalmente com verificação em duas etapas ativa. Não use a senha normal da conta e nunca versione esse valor.
 
 ## Fila global de e-mails
 
@@ -172,7 +204,9 @@ O stack de rollout da VPS usa um único `docker-compose.yml` na raiz com:
 - `mail-worker` para consumir o `email_outbox`, publicar no Redis e entregar os e-mails assíncronos
 - `web` para o frontend servido via `nginx`, proxyando `/api` para `server`
 
-O compose usa o `.env` da raiz como fonte de verdade operacional. Para subir o stack:
+O compose usa o `.env` da raiz como fonte de verdade operacional. Para produção, crie um `.env` real antes de subir o stack; o runtime rejeita placeholders, defaults locais, Turnstile dummy, Redis inseguro, SMTP incompleto e identidade administrativa interna não configurada.
+
+Para subir o stack:
 
 ```sh
 docker compose up -d --build

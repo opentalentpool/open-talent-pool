@@ -18,6 +18,16 @@ export function shouldStartComposeDatabase(config, error) {
   return isLocalDatabaseHost(config.postgresHost) && error?.code === "ECONNREFUSED";
 }
 
+export function shouldStartComposeMailpit(config) {
+  return (
+    !config.isProduction &&
+    isLocalDatabaseHost(config.smtpServer) &&
+    Number(config.smtpPort) === 1025 &&
+    !config.smtpUser &&
+    !config.smtpPass
+  );
+}
+
 export function createDatabaseConnectionError(config, error) {
   const target = formatDatabaseTarget(config);
   const guidance = isLocalDatabaseHost(config.postgresHost)
@@ -101,12 +111,16 @@ export function createComposeDatabaseStartError(error) {
   return error;
 }
 
-export async function startComposeDatabase({ cwd = defaultProjectRoot } = {}) {
+export async function startComposeServices(services, { cwd = defaultProjectRoot } = {}) {
   try {
-    await runCommand("docker", ["compose", "up", "-d", "db"], { cwd });
+    await runCommand("docker", ["compose", "up", "-d", ...services], { cwd });
   } catch (error) {
     throw createComposeDatabaseStartError(error);
   }
+}
+
+export async function startComposeDatabase({ cwd = defaultProjectRoot, services = ["db"] } = {}) {
+  await startComposeServices(services, { cwd });
 }
 
 function sleep(ms) {
@@ -154,8 +168,14 @@ export async function ensureDevelopmentDatabase({
 
   const config = getRuntimeConfigFn(env);
   const connectionResult = await tryConnect(config);
+  const servicesToStart = [];
+  const shouldEnsureMailpit = shouldStartComposeMailpit(config);
 
-  if (connectionResult.ok) {
+  if (shouldEnsureMailpit) {
+    servicesToStart.push("mailpit");
+  }
+
+  if (connectionResult.ok && servicesToStart.length === 0) {
     return {
       status: "already-running",
       config,
@@ -163,15 +183,30 @@ export async function ensureDevelopmentDatabase({
   }
 
   if (shouldStartComposeDatabase(config, connectionResult.error)) {
+    servicesToStart.unshift("db");
     logger.log(
       `PostgreSQL local indisponivel em ${formatDatabaseTarget(config)}. Subindo o servico db do docker compose...`,
     );
 
-    await startComposeDatabaseFn({ cwd, logger });
+    if (shouldEnsureMailpit) {
+      logger.log("SMTP local configurado para Mailpit. Garantindo o servico mailpit do docker compose...");
+    }
+
+    await startComposeDatabaseFn({ cwd, logger, services: servicesToStart });
     await waitForDatabaseFn(config, { logger, tryConnect });
 
     return {
-      status: "started-compose-db",
+      status: shouldEnsureMailpit ? "started-compose-dev-services" : "started-compose-db",
+      config,
+    };
+  }
+
+  if (connectionResult.ok && servicesToStart.length > 0) {
+    logger.log("SMTP local configurado para Mailpit. Garantindo o servico mailpit do docker compose...");
+    await startComposeDatabaseFn({ cwd, logger, services: servicesToStart });
+
+    return {
+      status: "started-compose-mailpit",
       config,
     };
   }

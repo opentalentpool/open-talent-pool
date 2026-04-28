@@ -43,6 +43,17 @@ services:
     networks:
       - redis_net
 
+  mailpit:
+    image: axllent/mailpit:v1.22
+    restart: unless-stopped
+    profiles:
+      - dev
+    ports:
+      - "127.0.0.1:${MAILPIT_SMTP_PUBLISHED_PORT:-1025}:1025"
+      - "127.0.0.1:${MAILPIT_WEB_PUBLISHED_PORT:-8025}:8025"
+    networks:
+      - app_net
+
   server:
     image: open-talent-pool-server:local
     build:

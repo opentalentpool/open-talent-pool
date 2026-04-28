@@ -1,6 +1,6 @@
 import { maskEmail } from "./auth.js";
 import { normalizeEmail, normalizeProfilePayload } from "./profiles.js";
-import { INTERNAL_OPERATIONS_ADMIN_EMAIL } from "../src/lib/internal-accounts.js";
+import { DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL } from "../src/lib/internal-accounts.js";
 import {
   IMMEDIATE_PERMANENT_BAN_CATEGORY_VALUES,
   MODERATION_ACTION_TYPE_VALUES,
@@ -772,7 +772,7 @@ export async function loadModerationReportById(executor, reportId) {
   return rows[0] || null;
 }
 
-export async function listHiddenProfiles(executor) {
+export async function listHiddenProfiles(executor, { reservedAdminEmail = DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL } = {}) {
   const result = await executor.query(
     `
       SELECT
@@ -787,7 +787,7 @@ export async function listHiddenProfiles(executor) {
         AND LOWER(u.email) <> $1
       ORDER BY up.moderation_blocked_at DESC, u.id DESC
     `,
-    [INTERNAL_OPERATIONS_ADMIN_EMAIL],
+    [reservedAdminEmail],
   );
 
   return result.rows.map((row) => ({
@@ -799,7 +799,7 @@ export async function listHiddenProfiles(executor) {
   }));
 }
 
-export async function listSuspendedAccounts(executor) {
+export async function listSuspendedAccounts(executor, { reservedAdminEmail = DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL } = {}) {
   const usersResult = await executor.query(
     `
       SELECT
@@ -811,7 +811,7 @@ export async function listSuspendedAccounts(executor) {
         AND LOWER(u.email) <> $1
       ORDER BY u.id DESC
     `,
-    [INTERNAL_OPERATIONS_ADMIN_EMAIL],
+    [reservedAdminEmail],
   );
 
   const items = [];
@@ -845,7 +845,11 @@ export async function listSuspendedAccounts(executor) {
   });
 }
 
-export async function listRestrictedReporters(executor, now = new Date()) {
+export async function listRestrictedReporters(
+  executor,
+  now = new Date(),
+  { reservedAdminEmail = DEFAULT_INTERNAL_OPERATIONS_ADMIN_EMAIL } = {},
+) {
   const usersResult = await executor.query(
     `
       SELECT
@@ -860,7 +864,7 @@ export async function listRestrictedReporters(executor, now = new Date()) {
         AND LOWER(u.email) <> $2
       ORDER BY u.reporting_restricted_until DESC, u.id DESC
     `,
-    [now, INTERNAL_OPERATIONS_ADMIN_EMAIL],
+    [now, reservedAdminEmail],
   );
 
   const items = [];

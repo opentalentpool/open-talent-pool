@@ -1,6 +1,11 @@
 import { spawn } from "child_process";
 import { describe, expect, it, vi } from "vitest";
-import { createComposeDatabaseStartError, ensureDevelopmentDatabase, startComposeDatabase } from "./dev-db.js";
+import {
+  createComposeDatabaseStartError,
+  ensureDevelopmentDatabase,
+  shouldStartComposeMailpit,
+  startComposeDatabase,
+} from "./dev-db.js";
 
 vi.mock("child_process", () => ({
   spawn: vi.fn(),
@@ -73,8 +78,99 @@ describe("ensureDevelopmentDatabase", () => {
       config,
     });
     expect(startComposeDatabaseFn).toHaveBeenCalledTimes(1);
+    expect(startComposeDatabaseFn).toHaveBeenCalledWith({
+      cwd: expect.any(String),
+      logger,
+      services: ["db"],
+    });
     expect(waitForDatabaseFn).toHaveBeenCalledTimes(1);
     expect(logger.log).toHaveBeenCalledWith(expect.stringContaining("PostgreSQL"));
+  });
+
+  it("garante o Mailpit local quando o SMTP de desenvolvimento usa localhost:1025 sem autenticação", async () => {
+    const config = {
+      postgresHost: "localhost",
+      postgresPort: 5432,
+      postgresDb: "otp",
+      postgresUser: "otp",
+      postgresPassword: "change_me",
+      smtpServer: "localhost",
+      smtpPort: 1025,
+      smtpUser: "",
+      smtpPass: "",
+      isProduction: false,
+    };
+    const logger = {
+      log: vi.fn(),
+      error: vi.fn(),
+    };
+    const startComposeDatabaseFn = vi.fn().mockResolvedValue(undefined);
+
+    const result = await ensureDevelopmentDatabase({
+      env: {},
+      logger,
+      loadEnvironmentFn: vi.fn(),
+      getRuntimeConfigFn: () => config,
+      tryConnect: vi.fn().mockResolvedValue({ ok: true }),
+      startComposeDatabaseFn,
+      waitForDatabaseFn: vi.fn(),
+    });
+
+    expect(result.status).toBe("started-compose-mailpit");
+    expect(startComposeDatabaseFn).toHaveBeenCalledWith({
+      cwd: expect.any(String),
+      logger,
+      services: ["mailpit"],
+    });
+    expect(logger.log).toHaveBeenCalledWith(expect.stringContaining("Mailpit"));
+  });
+
+  it("sobe Postgres e Mailpit juntos quando ambos são necessários no bootstrap local", async () => {
+    const config = {
+      postgresHost: "localhost",
+      postgresPort: 5432,
+      postgresDb: "otp",
+      postgresUser: "otp",
+      postgresPassword: "change_me",
+      smtpServer: "localhost",
+      smtpPort: 1025,
+      smtpUser: "",
+      smtpPass: "",
+      isProduction: false,
+    };
+    const connectionError = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:5432"), {
+      code: "ECONNREFUSED",
+    });
+    const startComposeDatabaseFn = vi.fn().mockResolvedValue(undefined);
+
+    const result = await ensureDevelopmentDatabase({
+      env: {},
+      logger: { log: vi.fn(), error: vi.fn() },
+      loadEnvironmentFn: vi.fn(),
+      getRuntimeConfigFn: () => config,
+      tryConnect: vi.fn().mockResolvedValue({ ok: false, error: connectionError }),
+      startComposeDatabaseFn,
+      waitForDatabaseFn: vi.fn().mockResolvedValue(undefined),
+    });
+
+    expect(result.status).toBe("started-compose-dev-services");
+    expect(startComposeDatabaseFn).toHaveBeenCalledWith({
+      cwd: expect.any(String),
+      logger: expect.any(Object),
+      services: ["db", "mailpit"],
+    });
+  });
+
+  it("não tenta subir Mailpit quando o SMTP local foi trocado por Gmail pessoal", () => {
+    expect(
+      shouldStartComposeMailpit({
+        smtpServer: "smtp.gmail.com",
+        smtpPort: 465,
+        smtpUser: "person@gmail.com",
+        smtpPass: "gmail-app-password",
+        isProduction: false,
+      }),
+    ).toBe(false);
   });
 
   it("falha com mensagem acionável quando o host não é local", async () => {
