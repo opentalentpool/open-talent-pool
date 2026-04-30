@@ -1,13 +1,17 @@
 {
-  email {$ACME_EMAIL}
+	email {$ACME_EMAIL}
 }
 
 {$APP_DOMAIN} {
-  encode zstd gzip
+	encode zstd gzip
 
-  reverse_proxy web:80 {
-    header_up X-Forwarded-Host {host}
-    header_up X-Forwarded-Proto {scheme}
-    header_up X-Real-IP {remote_host}
-  }
+	header {
+		-Server
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	reverse_proxy web:80 {
+		header_up X-Real-IP {remote_host}
+		header_down -Server
+	}
 }

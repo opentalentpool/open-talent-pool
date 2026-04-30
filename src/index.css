@@ -1,5 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&display=swap");
-
 @import "tailwindcss";
 @config "../tailwind.config.ts";
 
@@ -68,10 +66,10 @@
     --page-grid-horizontal: 214 26% 87% / 0.24;
     --page-grid-vertical: 214 26% 87% / 0.2;
 
-    --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-serif: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    --font-serif: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    --font-display: "Space Grotesk", "Manrope", ui-sans-serif, system-ui, sans-serif;
+    --font-display: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
     --shadow-2xs: 0 1px 2px 0 hsl(224 48% 15% / 0.03);
     --shadow-xs: 0 1px 2px 0 hsl(224 48% 15% / 0.05);

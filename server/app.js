@@ -625,6 +625,7 @@ function createApp({
         },
       },
       crossOriginResourcePolicy: false,
+      xFrameOptions: { action: "deny" },
     }),
   );
   app.use(express.json({ limit: "16kb" }));

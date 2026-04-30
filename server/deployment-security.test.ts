@@ -11,6 +11,7 @@ describe("deployment security headers", () => {
     const nginxConfig = fs.readFileSync(path.join(projectRoot, "nginx.conf"), "utf8");
 
     expect(nginxConfig).toContain("map $http_x_forwarded_proto $forwarded_proto");
+    expect(nginxConfig).toContain("server_tokens off;");
     expect(nginxConfig).toContain("add_header Content-Security-Policy");
     expect(nginxConfig).toContain("default-src 'self'");
     expect(nginxConfig).toContain("script-src 'self' https://challenges.cloudflare.com");
@@ -20,6 +21,15 @@ describe("deployment security headers", () => {
     expect(nginxConfig).toContain("add_header X-Content-Type-Options \"nosniff\" always");
     expect(nginxConfig).toContain("add_header Referrer-Policy \"strict-origin-when-cross-origin\" always");
     expect(nginxConfig).toContain("add_header Permissions-Policy");
+    expect(nginxConfig).toContain("location ~ /\\.(?!well-known(?:/|$))");
+  });
+
+  it("não tenta carregar fontes externas bloqueadas pela CSP", () => {
+    const frontendCss = fs.readFileSync(path.join(projectRoot, "src", "index.css"), "utf8");
+
+    expect(frontendCss).not.toContain("fonts.googleapis.com");
+    expect(frontendCss).not.toContain("fonts.gstatic.com");
+    expect(frontendCss).not.toMatch(/@import\s+url\(["']https?:\/\//);
   });
 
   it("bloqueia framing também nas respostas da API", async () => {
@@ -36,6 +46,7 @@ describe("deployment security headers", () => {
     const response = await request(app).get("/api/health");
 
     expect(response.headers["content-security-policy"]).toContain("frame-ancestors 'none'");
+    expect(response.headers["x-frame-options"]).toBe("DENY");
   });
 });
 
@@ -54,7 +65,10 @@ describe("deployment proxy topology", () => {
     expect(composeConfig).toContain("caddy_data:");
     expect(composeConfig).toContain("caddy_config:");
     expect(caddyConfig).toContain("{$APP_DOMAIN}");
+    expect(caddyConfig).toContain("-Server");
+    expect(caddyConfig).toContain('Strict-Transport-Security "max-age=31536000; includeSubDomains"');
     expect(caddyConfig).toContain("reverse_proxy web:80");
+    expect(caddyConfig).toContain("header_down -Server");
   });
 
   it("preserva o protocolo original do proxy antes de encaminhar para a API", () => {
