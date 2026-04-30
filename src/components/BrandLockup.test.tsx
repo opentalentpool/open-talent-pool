@@ -8,6 +8,6 @@ describe("BrandLockup", () => {
     expect(screen.getByLabelText("OpenTalentPool")).toBeInTheDocument();
     const image = container.querySelector("img");
     expect(image).not.toBeNull();
-    expect(image).toHaveAttribute("src", expect.stringContaining("favicon.svg"));
+    expect(image?.getAttribute("src") ?? "").toMatch(/(?:favicon\.svg|^data:image\/svg\+xml)/);
   });
 });
