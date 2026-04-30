@@ -227,18 +227,25 @@ O stack de rollout da VPS usa um único `docker-compose.yml` na raiz com:
 - `alerts` para o producer contínuo de alertas por e-mail
 - `mail-worker` para consumir o `email_outbox`, publicar no Redis e entregar os e-mails assíncronos
 - `web` para o frontend servido via `nginx`, proxyando `/api` para `server`
+- `proxy` para HTTPS público via Caddy no profile `production`
 
 O compose usa o `.env` da raiz como fonte de verdade operacional. Para produção, crie um `.env` real antes de subir o stack; o runtime rejeita placeholders, defaults locais, Turnstile dummy, Redis inseguro, SMTP incompleto e identidade administrativa interna não configurada.
 
-Para subir o stack:
+Na VPS, use o script de deploy da raiz. Ele atualiza a branch `main`, cria o `.env` de produção por prompt quando necessário, sobe o profile de produção e executa smoke checks:
 
 ```sh
-docker compose up -d --build
+./deploy.sh
 ```
 
-O serviço `web` fica publicado apenas em `127.0.0.1:8080`, esperando um proxy HTTPS externo na VPS encaminhando para esse endereço.
+Para validação manual equivalente:
 
-Se precisar rodar mais de uma stack na mesma máquina, você pode sobrescrever as portas publicadas com `WEB_PUBLISHED_PORT` e `POSTGRES_PUBLISHED_PORT`.
+```sh
+docker compose --profile production up -d --build
+```
+
+O serviço `web` continua publicado apenas em `127.0.0.1:8080` para smoke checks locais. A exposição pública de produção acontece pelo serviço `proxy`, que publica `80` e `443`, emite certificados via Caddy e encaminha para `web` dentro da rede Docker.
+
+Se precisar rodar mais de uma stack na mesma máquina, você pode sobrescrever as portas publicadas com `WEB_PUBLISHED_PORT`, `POSTGRES_PUBLISHED_PORT`, `HTTP_PUBLISHED_PORT` e `HTTPS_PUBLISHED_PORT`.
 
 Para o frontend no Compose, `VITE_API_URL` deve permanecer vazio para usar `/api` no mesmo host.
 
