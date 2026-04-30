@@ -295,6 +295,9 @@ run_rollout() {
 
   log "Building and starting production Compose stack"
   docker compose --profile production up -d --build
+
+  log "Recreating Caddy proxy to remount the current Caddyfile"
+  docker compose --profile production up -d --no-deps --force-recreate proxy
 }
 
 wait_for_url() {
