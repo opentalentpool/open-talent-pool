@@ -100,6 +100,117 @@ describe("PublicProfile", () => {
             end_date: "",
             is_current: true,
             description: "Liderança técnica em plataformas e arquitetura.",
+            seniority: "senior",
+            positions: [
+              {
+                id: "pos-1",
+                role_title: "Senior Engineer",
+                seniority: "senior",
+                start_date: "2022-01-01",
+                end_date: "2023-12-31",
+                is_current: false,
+                description: "Evolução de arquitetura frontend.",
+              },
+              {
+                id: "pos-2",
+                role_title: "Staff Engineer",
+                seniority: "senior",
+                start_date: "2024-01-01",
+                end_date: "",
+                is_current: true,
+                description: "Liderança técnica em plataformas e arquitetura.",
+              },
+            ],
+          },
+        ],
+        educations: [
+          {
+            id: "edu-1",
+            institution: "Universidade Livre",
+            degree: "Bacharelado",
+            field: "Ciência da Computação",
+            start_date: "2012-01-01",
+            end_date: "2016-12-01",
+            description: "",
+          },
+        ],
+        certifications: [
+          {
+            id: "cert-1",
+            name: "AWS Solutions Architect",
+            issuer: "AWS",
+            issued_at: "2025-01-01",
+            credential_url: "https://example.com/cert",
+            description: "",
+          },
+        ],
+        languages: [
+          {
+            id: "lang-1",
+            name: "Inglês",
+            proficiency: "Avançado",
+          },
+        ],
+        projects: [
+          {
+            id: "project-1",
+            name: "Plataforma de Dados",
+            role: "Tech Lead",
+            url: "https://example.com/project",
+            start_date: "2024-01-01",
+            end_date: "",
+            description: "Pipeline de eventos em tempo real.",
+            skills: ["Kafka"],
+          },
+        ],
+        publications: [
+          {
+            id: "pub-1",
+            title: "Arquitetura de plataformas internas",
+            publisher: "Tech Papers",
+            url: "https://example.com/paper",
+            published_at: "2025-03-01",
+            description: "",
+          },
+        ],
+        volunteerExperiences: [
+          {
+            id: "vol-1",
+            organization: "Comunidade Tech",
+            role: "Mentora",
+            start_date: "2023-01-01",
+            end_date: "",
+            is_current: true,
+            description: "Mentoria para pessoas iniciantes.",
+          },
+        ],
+        awards: [
+          {
+            id: "award-1",
+            title: "Destaque técnico",
+            issuer: "Open Tech",
+            awarded_at: "2024-08-01",
+            description: "",
+          },
+        ],
+        courses: [
+          {
+            id: "course-1",
+            name: "Sistemas Distribuídos",
+            institution: "Open Academy",
+            completed_at: "2024-06-01",
+            description: "",
+          },
+        ],
+        organizations: [
+          {
+            id: "org-1",
+            name: "Associação de Engenharia",
+            role: "Membra",
+            start_date: "2022-01-01",
+            end_date: "",
+            is_current: true,
+            description: "",
           },
         ],
         links: {
@@ -128,6 +239,25 @@ describe("PublicProfile", () => {
     expect(screen.getByText(/ações do recrutador/i)).toBeInTheDocument();
     expect(screen.getByText(/links públicos/i)).toBeInTheDocument();
     expect(screen.getByText(/experiência profissional/i)).toBeInTheDocument();
+    expect(screen.getByText(/senior engineer/i)).toBeInTheDocument();
+    expect(screen.getByText(/formação/i)).toBeInTheDocument();
+    expect(screen.getByText(/universidade livre/i)).toBeInTheDocument();
+    expect(screen.getByText(/certificações/i)).toBeInTheDocument();
+    expect(screen.getByText(/aws solutions architect/i)).toBeInTheDocument();
+    expect(screen.getByText(/idiomas/i)).toBeInTheDocument();
+    expect(screen.getByText(/inglês/i)).toBeInTheDocument();
+    expect(screen.getByText(/projetos/i)).toBeInTheDocument();
+    expect(screen.getByText(/plataforma de dados/i)).toBeInTheDocument();
+    expect(screen.getByText(/publicações/i)).toBeInTheDocument();
+    expect(screen.getByText(/arquitetura de plataformas internas/i)).toBeInTheDocument();
+    expect(screen.getByText(/voluntariado/i)).toBeInTheDocument();
+    expect(screen.getByText(/comunidade tech/i)).toBeInTheDocument();
+    expect(screen.getByText(/prêmios/i)).toBeInTheDocument();
+    expect(screen.getByText(/destaque técnico/i)).toBeInTheDocument();
+    expect(screen.getByText(/cursos/i)).toBeInTheDocument();
+    expect(screen.getByText(/sistemas distribuídos/i)).toBeInTheDocument();
+    expect(screen.getByText(/organizações/i)).toBeInTheDocument();
+    expect(screen.getByText(/associação de engenharia/i)).toBeInTheDocument();
     expect(screen.getByText(/remoto, híbrido/i)).toBeInTheDocument();
     expect(screen.getAllByText(/voltar para a busca/i).length).toBeGreaterThan(0);
 

@@ -325,6 +325,8 @@ function buildProfessionalProfile({ index, email }) {
   const currentStartYear = 2021 + (index % 4);
   const previousStartYear = currentStartYear - 2;
   const bio = `${name} atua em ${archetype.focus}. Tem experiencia em ${archetype.skills.slice(0, 3).join(", ")} e prefere ambientes com clareza tecnica, backlog priorizado e colaboracao proxima com produto.`;
+  const profileNumber = padIndex(index + 1);
+  const portfolioBaseUrl = `https://portfolio.opentalentpool.test/profissional-${profileNumber}`;
 
   return {
     name,
@@ -332,9 +334,11 @@ function buildProfessionalProfile({ index, email }) {
     state: location.state,
     bio,
     headline: `${archetype.headline} | ${archetype.skills[0]} e ${archetype.skills[1]}`,
-    linkedin: `https://linkedin.com/in/fixture-profissional-${padIndex(index + 1)}`,
-    github: `https://github.com/fixture-profissional-${padIndex(index + 1)}`,
-    portfolio: `https://portfolio.opentalentpool.test/profissional-${padIndex(index + 1)}`,
+    linkedin: `https://linkedin.com/in/fixture-profissional-${profileNumber}`,
+    github: `https://github.com/fixture-profissional-${profileNumber}`,
+    portfolio: portfolioBaseUrl,
+    contactEmail: email,
+    showContactEmailToRecruiters: true,
     skills: archetype.skills,
     experiences: [
       {
@@ -344,7 +348,28 @@ function buildProfessionalProfile({ index, email }) {
         start_date: `${currentStartYear}-01-01`,
         end_date: "",
         is_current: true,
+        seniority,
         description: `Responsavel por ${archetype.focus} com stack ${archetype.skills.slice(0, 3).join(", ")}.`,
+        positions: [
+          {
+            id: buildExperienceId("profissional", index + 1, "promocao"),
+            role_title: archetype.previousRole,
+            seniority: seniority === "senior" ? "pleno" : "junior",
+            start_date: `${currentStartYear}-01-01`,
+            end_date: `${currentStartYear + 1}-12-31`,
+            is_current: false,
+            description: `Primeiro ciclo na empresa com foco em ${archetype.area}.`,
+          },
+          {
+            id: buildExperienceId("profissional", index + 1, "atual-cargo"),
+            role_title: archetype.currentRole,
+            seniority,
+            start_date: `${currentStartYear + 2}-01-01`,
+            end_date: "",
+            is_current: true,
+            description: `Promocao para liderar ${archetype.focus}.`,
+          },
+        ],
       },
       {
         id: buildExperienceId("profissional", index + 1, "anterior"),
@@ -353,7 +378,109 @@ function buildProfessionalProfile({ index, email }) {
         start_date: `${previousStartYear}-01-01`,
         end_date: `${currentStartYear - 1}-12-31`,
         is_current: false,
+        seniority: seniority === "senior" ? "pleno" : "junior",
         description: `Atuacao anterior em ${archetype.area} com foco em entrega continua e sustentacao de produto.`,
+        positions: [
+          {
+            id: buildExperienceId("profissional", index + 1, "anterior-cargo"),
+            role_title: archetype.previousRole,
+            seniority: seniority === "senior" ? "pleno" : "junior",
+            start_date: `${previousStartYear}-01-01`,
+            end_date: `${currentStartYear - 1}-12-31`,
+            is_current: false,
+            description: `Atuacao anterior em ${archetype.area} com foco em entrega continua e sustentacao de produto.`,
+          },
+        ],
+      },
+    ],
+    educations: [
+      {
+        id: `education-${profileNumber}`,
+        institution: "Universidade Livre de Tecnologia",
+        degree: "Bacharelado",
+        field: archetype.area,
+        start_date: "2012-01-01",
+        end_date: "2016-12-01",
+        description: "Formacao tecnica de base para atuacao em produto e engenharia.",
+      },
+    ],
+    certifications: [
+      {
+        id: `certification-${profileNumber}`,
+        name: `${archetype.skills[0]} Professional`,
+        issuer: "Open Tech Institute",
+        issued_at: "2025-01-01",
+        credential_url: `https://credentials.opentalentpool.test/profissional-${profileNumber}/${archetype.area}`,
+        description: `Certificacao aplicada em ${archetype.skills[0]}.`,
+      },
+    ],
+    languages: [
+      {
+        id: `language-${profileNumber}`,
+        name: index % 2 === 0 ? "Inglês" : "Espanhol",
+        proficiency: index % 2 === 0 ? "Avançado" : "Intermediário",
+      },
+    ],
+    projects: [
+      {
+        id: `project-${profileNumber}`,
+        name: `Plataforma ${archetype.area}`,
+        role: archetype.currentRole,
+        url: `${portfolioBaseUrl}/projetos/${archetype.area}`,
+        start_date: `${currentStartYear}-03-01`,
+        end_date: `${currentStartYear + 1}-12-31`,
+        description: `Projeto de referencia em ${archetype.focus}.`,
+        skills: archetype.skills.slice(0, 3),
+      },
+    ],
+    publications: [
+      {
+        id: `publication-${profileNumber}`,
+        title: `Notas tecnicas sobre ${archetype.area}`,
+        publisher: "OpenTalentPool Labs",
+        url: `https://labs.opentalentpool.test/publicacoes/${profileNumber}-${archetype.area}`,
+        published_at: "2025-06-01",
+        description: "Texto publico de demonstracao para fixtures locais.",
+      },
+    ],
+    volunteerExperiences: [
+      {
+        id: `volunteer-${profileNumber}`,
+        organization: `Comunidade ${archetype.area} Brasil`,
+        role: "Mentoria técnica voluntária",
+        start_date: "2023-02-01",
+        end_date: "2023-11-30",
+        is_current: false,
+        description: `Apoio voluntario a profissionais em transicao para ${archetype.area}.`,
+      },
+    ],
+    awards: [
+      {
+        id: `award-${profileNumber}`,
+        title: "Reconhecimento de impacto técnico",
+        issuer: companyCurrent,
+        awarded_at: "2024-11-01",
+        description: "Registro sintético para demonstrar conquistas profissionais.",
+      },
+    ],
+    courses: [
+      {
+        id: `course-${profileNumber}`,
+        name: `Praticas avancadas em ${archetype.skills[0]}`,
+        institution: "Open Academy",
+        completed_at: "2024-04-01",
+        description: "Curso complementar usado em fixtures locais.",
+      },
+    ],
+    organizations: [
+      {
+        id: `organization-${profileNumber}`,
+        name: "Open Source Brasil",
+        role: `Membro de comunidade em ${archetype.area}`,
+        start_date: "2022-05-01",
+        end_date: "2024-05-01",
+        is_current: false,
+        description: "Participacao sintetica em comunidade profissional para demonstracao local.",
       },
     ],
     seniority,
@@ -383,6 +510,9 @@ function buildRecruiterSearch(index) {
       workModel,
       state: location.state,
       openToOpportunities: index % 2 === 0,
+      language: index % 2 === 0 ? "Inglês" : "",
+      certification: index % 3 === 0 ? archetype.skills[0] : "",
+      education: index % 4 === 0 ? archetype.area : "",
     },
     alertFrequency,
   };

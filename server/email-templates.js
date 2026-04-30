@@ -57,6 +57,9 @@ function buildSavedSearchUrl(appBaseUrl, criteria = {}, savedSearchId = null) {
   if (criteria.workModel) url.searchParams.set("workModel", criteria.workModel);
   if (criteria.state) url.searchParams.set("state", criteria.state);
   if (criteria.openToOpportunities) url.searchParams.set("openToOpportunities", "true");
+  if (criteria.language) url.searchParams.set("language", criteria.language);
+  if (criteria.certification) url.searchParams.set("certification", criteria.certification);
+  if (criteria.education) url.searchParams.set("education", criteria.education);
 
   return url.toString();
 }
@@ -90,6 +93,9 @@ function formatAlertFilters(criteria = {}) {
     criteria.workModel ? `modelo de trabalho: ${criteria.workModel}` : null,
     criteria.state ? `estado: ${criteria.state}` : null,
     criteria.openToOpportunities ? "apenas perfis abertos a oportunidades" : null,
+    criteria.language ? `idioma: ${criteria.language}` : null,
+    criteria.certification ? `certificação: ${criteria.certification}` : null,
+    criteria.education ? `formação: ${criteria.education}` : null,
   ].filter(Boolean);
 
   return filters.length ? filters.join(" | ") : "sem filtros adicionais";

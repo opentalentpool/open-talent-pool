@@ -14,6 +14,7 @@ import {
 } from "../src/lib/affirmative-config.js";
 
 const PROFILE_STALE_AFTER_MS = 180 * 24 * 60 * 60 * 1000;
+const SENIORITY_VALUES = new Set(["junior", "pleno", "senior"]);
 
 export const PROFILE_DEFAULTS = Object.freeze({
   city: "",
@@ -27,6 +28,15 @@ export const PROFILE_DEFAULTS = Object.freeze({
   showContactEmailToRecruiters: false,
   skills: [],
   experiences: [],
+  educations: [],
+  certifications: [],
+  languages: [],
+  projects: [],
+  publications: [],
+  volunteerExperiences: [],
+  awards: [],
+  courses: [],
+  organizations: [],
   seniority: "",
   workModels: [],
   openToOpportunities: false,
@@ -48,6 +58,16 @@ export function normalizeStringList(value) {
   return [...new Set(value.map(normalizeString).filter(Boolean))];
 }
 
+function normalizeSeniority(value) {
+  const normalized = normalizeString(value);
+
+  return SENIORITY_VALUES.has(normalized) ? normalized : "";
+}
+
+function normalizeId(value) {
+  return normalizeString(value) || crypto.randomUUID();
+}
+
 function normalizeWorkModelList(value, legacyValue) {
   const source = Array.isArray(value) ? value : value === undefined ? [legacyValue] : [];
 
@@ -62,16 +82,189 @@ export function normalizeExperiences(value) {
   if (!Array.isArray(value)) return [];
 
   return value
-    .map((experience) => ({
-      id: normalizeString(experience?.id) || crypto.randomUUID(),
-      role_title: normalizeString(experience?.role_title),
-      company_name: normalizeString(experience?.company_name),
-      start_date: normalizeString(experience?.start_date),
-      end_date: normalizeString(experience?.end_date),
-      is_current: Boolean(experience?.is_current),
-      description: normalizeString(experience?.description),
+    .map((experience) => {
+      const positions = normalizeExperiencePositions(experience);
+      const currentPosition = positions.find((position) => position.is_current);
+      const primaryPosition = currentPosition || positions.at(-1) || positions[0] || null;
+
+      return {
+        id: normalizeId(experience?.id),
+        role_title: normalizeString(experience?.role_title) || primaryPosition?.role_title || "",
+        company_name: normalizeString(experience?.company_name),
+        start_date: normalizeString(experience?.start_date) || positions[0]?.start_date || "",
+        end_date: Boolean(experience?.is_current) || primaryPosition?.is_current
+          ? ""
+          : normalizeString(experience?.end_date) || primaryPosition?.end_date || "",
+        is_current: Boolean(experience?.is_current) || Boolean(primaryPosition?.is_current),
+        seniority: normalizeSeniority(experience?.seniority) || primaryPosition?.seniority || "",
+        description: normalizeString(experience?.description) || primaryPosition?.description || "",
+        positions,
+      };
+    })
+    .filter((experience) => experience.role_title && experience.company_name && experience.start_date && experience.positions.length);
+}
+
+function normalizeExperiencePositions(experience) {
+  const source = Array.isArray(experience?.positions) && experience.positions.length > 0
+    ? experience.positions
+    : [
+        {
+          id: experience?.id,
+          role_title: experience?.role_title,
+          seniority: experience?.seniority,
+          start_date: experience?.start_date,
+          end_date: experience?.end_date,
+          is_current: experience?.is_current,
+          description: experience?.description,
+        },
+      ];
+
+  return source
+    .map((position) => ({
+      id: normalizeId(position?.id),
+      role_title: normalizeString(position?.role_title),
+      seniority: normalizeSeniority(position?.seniority),
+      start_date: normalizeString(position?.start_date),
+      end_date: Boolean(position?.is_current) ? "" : normalizeString(position?.end_date),
+      is_current: Boolean(position?.is_current),
+      description: normalizeString(position?.description),
     }))
-    .filter((experience) => experience.role_title && experience.company_name && experience.start_date);
+    .filter((position) => position.role_title && position.start_date);
+}
+
+function normalizeEducations(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((education) => ({
+      id: normalizeId(education?.id),
+      institution: normalizeString(education?.institution),
+      degree: normalizeString(education?.degree),
+      field: normalizeString(education?.field),
+      start_date: normalizeString(education?.start_date),
+      end_date: normalizeString(education?.end_date),
+      description: normalizeString(education?.description),
+    }))
+    .filter((education) => education.institution);
+}
+
+function normalizeCertifications(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((certification) => ({
+      id: normalizeId(certification?.id),
+      name: normalizeString(certification?.name),
+      issuer: normalizeString(certification?.issuer),
+      issued_at: normalizeString(certification?.issued_at),
+      credential_url: normalizeString(certification?.credential_url),
+      description: normalizeString(certification?.description),
+    }))
+    .filter((certification) => certification.name);
+}
+
+function normalizeLanguages(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((language) => ({
+      id: normalizeId(language?.id),
+      name: normalizeString(language?.name),
+      proficiency: normalizeString(language?.proficiency),
+    }))
+    .filter((language) => language.name);
+}
+
+function normalizeProjects(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((project) => ({
+      id: normalizeId(project?.id),
+      name: normalizeString(project?.name),
+      role: normalizeString(project?.role),
+      url: normalizeString(project?.url),
+      start_date: normalizeString(project?.start_date),
+      end_date: normalizeString(project?.end_date),
+      description: normalizeString(project?.description),
+      skills: normalizeStringList(project?.skills),
+    }))
+    .filter((project) => project.name);
+}
+
+function normalizePublications(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((publication) => ({
+      id: normalizeId(publication?.id),
+      title: normalizeString(publication?.title),
+      publisher: normalizeString(publication?.publisher),
+      url: normalizeString(publication?.url),
+      published_at: normalizeString(publication?.published_at),
+      description: normalizeString(publication?.description),
+    }))
+    .filter((publication) => publication.title);
+}
+
+function normalizeVolunteerExperiences(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((volunteerExperience) => ({
+      id: normalizeId(volunteerExperience?.id),
+      organization: normalizeString(volunteerExperience?.organization),
+      role: normalizeString(volunteerExperience?.role),
+      start_date: normalizeString(volunteerExperience?.start_date),
+      end_date: Boolean(volunteerExperience?.is_current) ? "" : normalizeString(volunteerExperience?.end_date),
+      is_current: Boolean(volunteerExperience?.is_current),
+      description: normalizeString(volunteerExperience?.description),
+    }))
+    .filter((volunteerExperience) => volunteerExperience.organization);
+}
+
+function normalizeAwards(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((award) => ({
+      id: normalizeId(award?.id),
+      title: normalizeString(award?.title),
+      issuer: normalizeString(award?.issuer),
+      awarded_at: normalizeString(award?.awarded_at),
+      description: normalizeString(award?.description),
+    }))
+    .filter((award) => award.title);
+}
+
+function normalizeCourses(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((course) => ({
+      id: normalizeId(course?.id),
+      name: normalizeString(course?.name),
+      institution: normalizeString(course?.institution),
+      completed_at: normalizeString(course?.completed_at),
+      description: normalizeString(course?.description),
+    }))
+    .filter((course) => course.name);
+}
+
+function normalizeOrganizations(value) {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .map((organization) => ({
+      id: normalizeId(organization?.id),
+      name: normalizeString(organization?.name),
+      role: normalizeString(organization?.role),
+      start_date: normalizeString(organization?.start_date),
+      end_date: Boolean(organization?.is_current) ? "" : normalizeString(organization?.end_date),
+      is_current: Boolean(organization?.is_current),
+      description: normalizeString(organization?.description),
+    }))
+    .filter((organization) => organization.name);
 }
 
 export function normalizeProfilePayload(payload = {}) {
@@ -91,6 +284,15 @@ export function normalizeProfilePayload(payload = {}) {
     showContactEmailToRecruiters: Boolean(payload.showContactEmailToRecruiters),
     skills: normalizeStringList(payload.skills),
     experiences: normalizeExperiences(payload.experiences),
+    educations: normalizeEducations(payload.educations),
+    certifications: normalizeCertifications(payload.certifications),
+    languages: normalizeLanguages(payload.languages),
+    projects: normalizeProjects(payload.projects),
+    publications: normalizePublications(payload.publications),
+    volunteerExperiences: normalizeVolunteerExperiences(payload.volunteerExperiences),
+    awards: normalizeAwards(payload.awards),
+    courses: normalizeCourses(payload.courses),
+    organizations: normalizeOrganizations(payload.organizations),
     seniority: normalizeString(payload.seniority),
     workModels: normalizeWorkModelList(payload.workModels, payload.workModel),
     openToOpportunities: Boolean(payload.openToOpportunities),
@@ -116,6 +318,9 @@ export function normalizeSearchCriteria(criteria = {}) {
     workModel: parsed.workModel,
     state: parsed.state,
     openToOpportunities: parsed.openToOpportunities,
+    language: parsed.language,
+    certification: parsed.certification,
+    education: parsed.education,
     page: parsed.page,
     pageSize: parsed.pageSize,
   };
@@ -130,6 +335,9 @@ export function normalizeSavedSearchCriteria(criteria = {}) {
     workModel: parsed.workModel,
     state: parsed.state,
     openToOpportunities: parsed.openToOpportunities,
+    language: parsed.language,
+    certification: parsed.certification,
+    education: parsed.education,
     affirmativeContext: parsed.affirmativeContext
       ? {
           useCase: parsed.affirmativeContext.useCase,
@@ -155,6 +363,9 @@ export function normalizeAffirmativeSearchCriteria(criteria = {}) {
     workModel: parsed.workModel,
     state: parsed.state,
     openToOpportunities: parsed.openToOpportunities,
+    language: parsed.language,
+    certification: parsed.certification,
+    education: parsed.education,
     page: parsed.page,
     pageSize: parsed.pageSize,
     affirmativeContext: {
@@ -354,6 +565,15 @@ export function shapePublicProfileDetail(record) {
     openToOpportunities: record.profile.openToOpportunities,
     skills: record.profile.skills,
     experiences: record.profile.experiences,
+    educations: record.profile.educations,
+    certifications: record.profile.certifications,
+    languages: record.profile.languages,
+    projects: record.profile.projects,
+    publications: record.profile.publications,
+    volunteerExperiences: record.profile.volunteerExperiences,
+    awards: record.profile.awards,
+    courses: record.profile.courses,
+    organizations: record.profile.organizations,
     links: {
       linkedin: record.profile.linkedin,
       github: record.profile.github,
@@ -368,11 +588,22 @@ function buildSearchableContent(record) {
   const profile = record.profile;
   const experiences = profile.experiences
     .map((experience) =>
-      [experience.role_title, experience.company_name, experience.description]
+      [
+        experience.role_title,
+        experience.company_name,
+        experience.seniority,
+        experience.description,
+        ...experience.positions.flatMap((position) => [
+          position.role_title,
+          position.seniority,
+          position.description,
+        ]),
+      ]
         .filter(Boolean)
         .join(" "),
     )
     .join(" ");
+  const richProfile = buildRichProfileContent(profile);
 
   return [
     record.name,
@@ -384,10 +615,79 @@ function buildSearchableContent(record) {
     profile.workModels.join(" "),
     profile.skills.join(" "),
     experiences,
+    richProfile,
   ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
+
+function buildRichProfileContent(profile) {
+  return [
+    ...profile.educations.flatMap((education) => [
+      education.institution,
+      education.degree,
+      education.field,
+      education.description,
+    ]),
+    ...profile.certifications.flatMap((certification) => [
+      certification.name,
+      certification.issuer,
+      certification.description,
+    ]),
+    ...profile.languages.flatMap((language) => [
+      language.name,
+      language.proficiency,
+    ]),
+    ...profile.projects.flatMap((project) => [
+      project.name,
+      project.role,
+      project.description,
+      project.skills.join(" "),
+    ]),
+    ...profile.publications.flatMap((publication) => [
+      publication.title,
+      publication.publisher,
+      publication.description,
+    ]),
+    ...profile.volunteerExperiences.flatMap((volunteerExperience) => [
+      volunteerExperience.organization,
+      volunteerExperience.role,
+      volunteerExperience.description,
+    ]),
+    ...profile.awards.flatMap((award) => [
+      award.title,
+      award.issuer,
+      award.description,
+    ]),
+    ...profile.courses.flatMap((course) => [
+      course.name,
+      course.institution,
+      course.description,
+    ]),
+    ...profile.organizations.flatMap((organization) => [
+      organization.name,
+      organization.role,
+      organization.description,
+    ]),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function normalizeSearchTerm(value) {
+  return normalizeString(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+}
+
+function contentMatchesTerm(parts, term) {
+  const normalizedTerm = normalizeSearchTerm(term);
+
+  if (!normalizedTerm) return true;
+
+  return normalizeSearchTerm(parts.filter(Boolean).join(" ")).includes(normalizedTerm);
 }
 
 function applyCriteria(records, criteria) {
@@ -396,6 +696,15 @@ function applyCriteria(records, criteria) {
     if (criteria.workModel && !record.profile.workModels.includes(criteria.workModel)) return false;
     if (criteria.state && record.profile.state !== criteria.state) return false;
     if (criteria.openToOpportunities && !record.profile.openToOpportunities) return false;
+    if (criteria.language && !record.profile.languages.some((language) =>
+      contentMatchesTerm([language.name, language.proficiency], criteria.language),
+    )) return false;
+    if (criteria.certification && !record.profile.certifications.some((certification) =>
+      contentMatchesTerm([certification.name, certification.issuer, certification.description], criteria.certification),
+    )) return false;
+    if (criteria.education && !record.profile.educations.some((education) =>
+      contentMatchesTerm([education.institution, education.degree, education.field, education.description], criteria.education),
+    )) return false;
 
     return true;
   });
@@ -476,8 +785,11 @@ function manualRankRecords(records, query) {
       const bio = record.profile.bio.toLowerCase();
       const skills = record.profile.skills.join(" ").toLowerCase();
       const experiences = record.profile.experiences
-        .map((experience) => `${experience.role_title} ${experience.company_name} ${experience.description}`.toLowerCase())
+        .map((experience) => `${experience.role_title} ${experience.company_name} ${experience.seniority} ${experience.description} ${experience.positions
+          .map((position) => `${position.role_title} ${position.seniority} ${position.description}`)
+          .join(" ")}`.toLowerCase())
         .join(" ");
+      const richProfile = buildRichProfileContent(record.profile).toLowerCase();
 
       let score = 0;
 
@@ -487,6 +799,7 @@ function manualRankRecords(records, query) {
         if (skills.includes(token)) score += 3;
         if (bio.includes(token)) score += 2;
         if (experiences.includes(token)) score += 2;
+        if (richProfile.includes(token)) score += 2;
       }
 
       if (buildSearchableContent(record).includes(tokens.join(" "))) {
@@ -530,12 +843,100 @@ async function getFullTextRanks(pool, query) {
                 COALESCE(
                   (
                     SELECT string_agg(
-                      concat_ws(' ', experience->>'role_title', experience->>'company_name', experience->>'description'),
+                      concat_ws(
+                        ' ',
+                        experience->>'role_title',
+                        experience->>'company_name',
+                        experience->>'seniority',
+                        experience->>'description',
+                        COALESCE(
+                          (
+                            SELECT string_agg(
+                              concat_ws(' ', position->>'role_title', position->>'seniority', position->>'description'),
+                              ' '
+                            )
+                            FROM jsonb_array_elements(COALESCE(experience->'positions', '[]'::jsonb)) AS position
+                          ),
+                          ''
+                        )
+                      ),
                       ' '
                     )
                     FROM jsonb_array_elements(COALESCE(up.profile_data->'experiences', '[]'::jsonb)) AS experience
                   ),
                   ''
+                )
+              ),
+              'C'
+            ) ||
+            setweight(
+              to_tsvector(
+                'simple',
+                concat_ws(
+                  ' ',
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', education->>'institution', education->>'degree', education->>'field', education->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'educations', '[]'::jsonb)) AS education
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', certification->>'name', certification->>'issuer', certification->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'certifications', '[]'::jsonb)) AS certification
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', language->>'name', language->>'proficiency'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'languages', '[]'::jsonb)) AS language
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', project->>'name', project->>'role', project->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'projects', '[]'::jsonb)) AS project
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', publication->>'title', publication->>'publisher', publication->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'publications', '[]'::jsonb)) AS publication
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', volunteer->>'organization', volunteer->>'role', volunteer->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'volunteerExperiences', '[]'::jsonb)) AS volunteer
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', award->>'title', award->>'issuer', award->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'awards', '[]'::jsonb)) AS award
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', course->>'name', course->>'institution', course->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'courses', '[]'::jsonb)) AS course
+                    ),
+                    ''
+                  ),
+                  COALESCE(
+                    (
+                      SELECT string_agg(concat_ws(' ', organization->>'name', organization->>'role', organization->>'description'), ' ')
+                      FROM jsonb_array_elements(COALESCE(up.profile_data->'organizations', '[]'::jsonb)) AS organization
+                    ),
+                    ''
+                  )
                 )
               ),
               'C'

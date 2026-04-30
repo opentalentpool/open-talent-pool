@@ -66,6 +66,15 @@ async function createPublishedProfile(pool, userId, overrides = {}) {
     portfolio: "",
     skills: overrides.skills || ["React"],
     experiences: overrides.experiences || [],
+    educations: overrides.educations || [],
+    certifications: overrides.certifications || [],
+    languages: overrides.languages || [],
+    projects: overrides.projects || [],
+    publications: overrides.publications || [],
+    volunteerExperiences: overrides.volunteerExperiences || [],
+    awards: overrides.awards || [],
+    courses: overrides.courses || [],
+    organizations: overrides.organizations || [],
     seniority: overrides.seniority || "pleno",
     workModels,
     openToOpportunities: overrides.openToOpportunities ?? true,
@@ -102,6 +111,137 @@ describe("searchAffirmativeProfiles", () => {
     });
 
     expect(normalized.workModels).toEqual(["remoto"]);
+  });
+
+  it("normaliza experiências legadas como cargos e preserva blocos ricos opcionais", () => {
+    const normalized = normalizeProfilePayload({
+      name: "Ada Lovelace",
+      experiences: [
+        {
+          id: "exp-1",
+          role_title: "Staff Engineer",
+          company_name: "Analytical Engines",
+          seniority: "senior",
+          start_date: "2024-01-01",
+          end_date: "",
+          is_current: true,
+          description: "Liderança técnica em plataforma.",
+        },
+      ],
+      educations: [
+        {
+          id: "edu-1",
+          institution: "Universidade Livre",
+          degree: "Bacharelado",
+          field: "Ciência da Computação",
+          start_date: "2012-01-01",
+          end_date: "2016-12-01",
+          description: "Pesquisa aplicada em sistemas distribuídos.",
+        },
+      ],
+      certifications: [
+        {
+          id: "cert-1",
+          name: "AWS Solutions Architect",
+          issuer: "AWS",
+          issued_at: "2025-01-01",
+          credential_url: "https://example.com/cert",
+          description: "Arquitetura de aplicações cloud.",
+        },
+      ],
+      languages: [
+        {
+          id: "lang-1",
+          name: "Inglês",
+          proficiency: "Avançado",
+        },
+      ],
+      projects: [
+        {
+          id: "project-1",
+          name: "Plataforma de Dados",
+          role: "Tech Lead",
+          url: "https://example.com/project",
+          start_date: "2024-01-01",
+          end_date: "",
+          description: "Pipeline de eventos em tempo real.",
+          skills: ["Kafka", "TypeScript"],
+        },
+      ],
+      publications: [
+        {
+          id: "pub-1",
+          title: "Arquitetura de plataformas internas",
+          publisher: "Tech Papers",
+          url: "https://example.com/paper",
+          published_at: "2025-03-01",
+          description: "Artigo técnico.",
+        },
+      ],
+      volunteerExperiences: [
+        {
+          id: "vol-1",
+          organization: "Comunidade Tech",
+          role: "Mentora",
+          start_date: "2023-01-01",
+          end_date: "",
+          is_current: true,
+          description: "Mentoria para pessoas iniciantes.",
+        },
+      ],
+      awards: [
+        {
+          id: "award-1",
+          title: "Destaque técnico",
+          issuer: "Open Tech",
+          awarded_at: "2024-08-01",
+          description: "Reconhecimento por impacto técnico.",
+        },
+      ],
+      courses: [
+        {
+          id: "course-1",
+          name: "Sistemas Distribuídos",
+          institution: "Open Academy",
+          completed_at: "2024-06-01",
+          description: "Curso avançado.",
+        },
+      ],
+      organizations: [
+        {
+          id: "org-1",
+          name: "Associação de Engenharia",
+          role: "Membra",
+          start_date: "2022-01-01",
+          end_date: "",
+          is_current: true,
+          description: "Grupo técnico.",
+        },
+      ],
+    });
+
+    expect(normalized.experiences[0]).toEqual(
+      expect.objectContaining({
+        role_title: "Staff Engineer",
+        company_name: "Analytical Engines",
+        seniority: "senior",
+        positions: [
+          expect.objectContaining({
+            role_title: "Staff Engineer",
+            seniority: "senior",
+          }),
+        ],
+      }),
+    );
+    expect(normalized.educations[0].institution).toBe("Universidade Livre");
+    expect(normalized.certifications[0].name).toBe("AWS Solutions Architect");
+    expect(normalized.languages[0].name).toBe("Inglês");
+    expect(normalized.projects[0].skills).toEqual(["Kafka", "TypeScript"]);
+    expect(normalized.publications[0].title).toBe("Arquitetura de plataformas internas");
+    expect(normalized.volunteerExperiences[0].organization).toBe("Comunidade Tech");
+    expect(normalized.awards[0].title).toBe("Destaque técnico");
+    expect(normalized.courses[0].name).toBe("Sistemas Distribuídos");
+    expect(normalized.organizations[0].name).toBe("Associação de Engenharia");
   });
 
   it("inclui perfis multi-modelo quando o filtro singular busca por um dos modelos aceitos", async () => {
@@ -147,6 +287,56 @@ describe("searchAffirmativeProfiles", () => {
           workModels: ["remoto", "hibrido"],
         }),
       ]);
+    } finally {
+      await pool.end();
+    }
+  });
+
+  it("filtra perfis publicados por idioma, certificação e formação estruturados", async () => {
+    const pool = await createTestPool();
+
+    try {
+      const matchingId = await createUser(pool, {
+        name: "Ada Lovelace",
+        email: "ada-rich@example.com",
+        role: "professional",
+      });
+      const fallbackId = await createUser(pool, {
+        name: "Grace Hopper",
+        email: "grace-rich@example.com",
+        role: "professional",
+      });
+
+      await createPublishedProfile(pool, matchingId, {
+        name: "Ada Lovelace",
+        publicSlug: "ada-rich-1",
+        languages: [{ id: "lang-1", name: "Inglês", proficiency: "Avançado" }],
+        certifications: [{ id: "cert-1", name: "AWS Solutions Architect", issuer: "AWS", issued_at: "", credential_url: "", description: "" }],
+        educations: [{ id: "edu-1", institution: "Universidade Livre", degree: "Bacharelado", field: "Engenharia de Software", start_date: "", end_date: "", description: "" }],
+      });
+      await createPublishedProfile(pool, fallbackId, {
+        name: "Grace Hopper",
+        publicSlug: "grace-rich-2",
+        languages: [{ id: "lang-2", name: "Espanhol", proficiency: "Intermediário" }],
+        certifications: [{ id: "cert-2", name: "Certified Kubernetes Administrator", issuer: "CNCF", issued_at: "", credential_url: "", description: "" }],
+        educations: [{ id: "edu-2", institution: "Instituto Aberto", degree: "Tecnólogo", field: "Redes", start_date: "", end_date: "", description: "" }],
+      });
+
+      const result = await searchPublishedProfiles(pool, {
+        q: "",
+        seniority: "",
+        workModel: "remoto",
+        state: "SP",
+        openToOpportunities: false,
+        language: "ingles",
+        certification: "solutions architect",
+        education: "software",
+        page: 1,
+        pageSize: 20,
+      });
+
+      expect(result.total).toBe(1);
+      expect(result.items[0]).toEqual(expect.objectContaining({ name: "Ada Lovelace" }));
     } finally {
       await pool.end();
     }

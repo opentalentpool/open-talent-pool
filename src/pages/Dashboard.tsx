@@ -4,10 +4,14 @@ import {
   Bell,
   BookmarkPlus,
   Briefcase,
+  Building2,
   ChevronsUpDown,
   Download,
   ExternalLink,
+  FileText,
+  GraduationCap,
   Heart,
+  Languages,
   Loader2,
   Mail,
   Plus,
@@ -15,7 +19,9 @@ import {
   Search,
   ShieldCheck,
   Trash2,
+  Trophy,
   User,
+  Users,
   X,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
@@ -81,12 +87,22 @@ import { LEGAL_CONTACT_EMAIL } from "@/lib/legal-policies.js";
 import {
   createEmptyProfileData,
   type AffirmativeGroup,
+  type Award,
+  type Certification,
+  type Course,
+  type Education,
   type Experience,
+  type ExperiencePosition,
   type FavoriteProfile,
+  type Language,
+  type Organization,
   type ProfileData,
   type ProfilePublication,
+  type Project,
+  type Publication,
   type SavedSearchAlertFrequency,
   type SavedSearch,
+  type VolunteerExperience,
 } from "@/types/profile";
 import type {
   ContactAccessLog,
@@ -123,6 +139,15 @@ function downloadJsonFile(filename: string, payload: unknown) {
 
 const EXPERIENCE_DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const CONTACT_EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const EMPTY_POSITION_DRAFT: ExperiencePosition = {
+  id: "",
+  role_title: "",
+  seniority: "",
+  start_date: "",
+  end_date: "",
+  is_current: false,
+  description: "",
+};
 
 function normalizeDashboardEmail(value: string) {
   return value.trim().toLowerCase();
@@ -140,6 +165,149 @@ function formatExperienceDateInput(value: string) {
   }
 
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
+function createEmptyPositionDraft(): ExperiencePosition {
+  return { ...EMPTY_POSITION_DRAFT };
+}
+
+function createEmptyEducationDraft(): Education {
+  return { id: "", institution: "", degree: "", field: "", start_date: "", end_date: "", description: "" };
+}
+
+function createEmptyCertificationDraft(): Certification {
+  return { id: "", name: "", issuer: "", issued_at: "", credential_url: "", description: "" };
+}
+
+function createEmptyLanguageDraft(): Language {
+  return { id: "", name: "", proficiency: "" };
+}
+
+function createEmptyProjectDraft(): Project {
+  return { id: "", name: "", role: "", url: "", start_date: "", end_date: "", description: "", skills: [] };
+}
+
+function createEmptyPublicationDraft(): Publication {
+  return { id: "", title: "", publisher: "", url: "", published_at: "", description: "" };
+}
+
+function createEmptyVolunteerExperienceDraft(): VolunteerExperience {
+  return { id: "", organization: "", role: "", start_date: "", end_date: "", is_current: false, description: "" };
+}
+
+function createEmptyAwardDraft(): Award {
+  return { id: "", title: "", issuer: "", awarded_at: "", description: "" };
+}
+
+function createEmptyCourseDraft(): Course {
+  return { id: "", name: "", institution: "", completed_at: "", description: "" };
+}
+
+function createEmptyOrganizationDraft(): Organization {
+  return { id: "", name: "", role: "", start_date: "", end_date: "", is_current: false, description: "" };
+}
+
+function getDateRangeLabel(startDate: string, endDate: string, isCurrent = false) {
+  return [startDate, isCurrent ? "atual" : endDate].filter(Boolean).join(" • ");
+}
+
+type RichProfileField<T> = {
+  key: keyof T;
+  label: string;
+  placeholder?: string;
+  textarea?: boolean;
+  required?: boolean;
+};
+
+function RichProfileSection<T extends { id: string }>({
+  icon,
+  title,
+  fields,
+  items,
+  draft,
+  onDraftChange,
+  onAdd,
+  onRemove,
+  addLabel,
+  getTitle,
+  getSubtitle,
+  getDescription,
+}: {
+  icon: typeof User;
+  title: string;
+  fields: RichProfileField<T>[];
+  items: T[];
+  draft: T;
+  onDraftChange: (nextDraft: T) => void;
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  addLabel: string;
+  getTitle: (item: T) => string;
+  getSubtitle?: (item: T) => string;
+  getDescription?: (item: T) => string;
+}) {
+  return (
+    <details className="surface-panel p-7" open={items.length > 0 ? true : undefined}>
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <SectionTitle icon={icon} title={title} />
+      </summary>
+      <div className="mt-6 rounded-[1.6rem] border border-border/80 bg-secondary/60 p-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          {fields.map((field) => (
+            <div key={String(field.key)} className={field.textarea ? "md:col-span-2" : undefined}>
+              <Label htmlFor={`${String(field.key)}-${title}`}>{field.label}</Label>
+              {field.textarea ? (
+                <Textarea
+                  id={`${String(field.key)}-${title}`}
+                  rows={3}
+                  className="mt-2 rounded-[1.6rem] border-border/80 bg-white/85"
+                  value={String(draft[field.key] ?? "")}
+                  onChange={(event) => onDraftChange({ ...draft, [field.key]: event.target.value })}
+                  placeholder={field.placeholder}
+                />
+              ) : (
+                <Input
+                  id={`${String(field.key)}-${title}`}
+                  className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85"
+                  value={String(draft[field.key] ?? "")}
+                  onChange={(event) => onDraftChange({ ...draft, [field.key]: event.target.value })}
+                  placeholder={field.placeholder}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+        <Button type="button" onClick={onAdd} className="mt-4 rounded-full">
+          <Plus className="h-4 w-4" />
+          {addLabel}
+        </Button>
+      </div>
+
+      {items.length ? (
+        <div className="mt-5 space-y-4">
+          {items.map((item) => {
+            const subtitle = getSubtitle?.(item);
+            const description = getDescription?.(item);
+
+            return (
+              <div key={item.id} className="rounded-[1.4rem] border border-border/80 bg-white/75 p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="text-xl leading-tight">{getTitle(item)}</h3>
+                    {subtitle ? <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p> : null}
+                    {description ? <p className="mt-3 text-sm leading-6 text-foreground">{description}</p> : null}
+                  </div>
+                  <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => onRemove(item.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </details>
+  );
 }
 
 const Dashboard = () => {
@@ -222,6 +390,16 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
   const [newSkill, setNewSkill] = useState("");
   const [affirmativeConsentAccepted, setAffirmativeConsentAccepted] = useState(false);
   const [newExperience, setNewExperience] = useState<Experience>(createEmptyExperienceDraft());
+  const [positionDrafts, setPositionDrafts] = useState<Record<string, ExperiencePosition>>({});
+  const [newEducation, setNewEducation] = useState<Education>(createEmptyEducationDraft());
+  const [newCertification, setNewCertification] = useState<Certification>(createEmptyCertificationDraft());
+  const [newLanguage, setNewLanguage] = useState<Language>(createEmptyLanguageDraft());
+  const [newProject, setNewProject] = useState<Project>(createEmptyProjectDraft());
+  const [newPublication, setNewPublication] = useState<Publication>(createEmptyPublicationDraft());
+  const [newVolunteerExperience, setNewVolunteerExperience] = useState<VolunteerExperience>(createEmptyVolunteerExperienceDraft());
+  const [newAward, setNewAward] = useState<Award>(createEmptyAwardDraft());
+  const [newCourse, setNewCourse] = useState<Course>(createEmptyCourseDraft());
+  const [newOrganization, setNewOrganization] = useState<Organization>(createEmptyOrganizationDraft());
   const baselineDraftSnapshotRef = useRef(
     createProfessionalProfileDraftBaseline(createEmptyProfileData(user?.name || "", accountEmail), false),
   );
@@ -718,6 +896,17 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
         {
           ...newExperience,
           id: crypto.randomUUID(),
+          positions: [
+            {
+              id: crypto.randomUUID(),
+              role_title: newExperience.role_title,
+              seniority: newExperience.seniority,
+              start_date: newExperience.start_date,
+              end_date: newExperience.is_current ? "" : newExperience.end_date,
+              is_current: newExperience.is_current,
+              description: newExperience.description,
+            },
+          ],
         },
       ],
     }));
@@ -728,6 +917,132 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
     setProfile((current) => ({
       ...current,
       experiences: current.experiences.filter((experience) => experience.id !== id),
+    }));
+  };
+
+  const addExperiencePosition = (experienceId: string) => {
+    const draft = positionDrafts[experienceId] || createEmptyPositionDraft();
+
+    if (!draft.role_title || !draft.start_date) {
+      toast.error("Preencha cargo e data de início antes de adicionar a promoção.");
+      return;
+    }
+
+    if (!EXPERIENCE_DATE_REGEX.test(draft.start_date) || (draft.end_date && !EXPERIENCE_DATE_REGEX.test(draft.end_date))) {
+      toast.error("Use o formato AAAA-MM-DD nas datas antes de adicionar a promoção.");
+      return;
+    }
+
+    if (!draft.is_current && draft.end_date && draft.end_date < draft.start_date) {
+      toast.error("A data de fim não pode ser anterior à data de início.");
+      return;
+    }
+
+    setProfile((current) => ({
+      ...current,
+      experiences: current.experiences.map((experience) => {
+        if (experience.id !== experienceId) return experience;
+
+        const positions = [
+          ...experience.positions,
+          {
+            ...draft,
+            id: crypto.randomUUID(),
+            end_date: draft.is_current ? "" : draft.end_date,
+          },
+        ];
+        const currentPosition = positions.find((position) => position.is_current);
+        const primaryPosition = currentPosition || positions.at(-1) || positions[0];
+
+        return {
+          ...experience,
+          role_title: primaryPosition.role_title,
+          seniority: primaryPosition.seniority,
+          start_date: positions[0]?.start_date || experience.start_date,
+          end_date: primaryPosition.is_current ? "" : primaryPosition.end_date,
+          is_current: primaryPosition.is_current,
+          description: primaryPosition.description || experience.description,
+          positions,
+        };
+      }),
+    }));
+    setPositionDrafts((current) => ({
+      ...current,
+      [experienceId]: createEmptyPositionDraft(),
+    }));
+  };
+
+  const updatePositionDraft = (experienceId: string, nextDraft: ExperiencePosition) => {
+    setPositionDrafts((current) => ({
+      ...current,
+      [experienceId]: nextDraft,
+    }));
+  };
+
+  const removeExperiencePosition = (experienceId: string, positionId: string) => {
+    setProfile((current) => ({
+      ...current,
+      experiences: current.experiences.map((experience) => {
+        if (experience.id !== experienceId) return experience;
+
+        const positions = experience.positions.filter((position) => position.id !== positionId);
+        const primaryPosition = positions.find((position) => position.is_current) || positions.at(-1) || positions[0];
+
+        if (!primaryPosition) {
+          return {
+            ...experience,
+            positions,
+          };
+        }
+
+        return {
+          ...experience,
+          role_title: primaryPosition.role_title,
+          seniority: primaryPosition.seniority,
+          start_date: positions[0]?.start_date || experience.start_date,
+          end_date: primaryPosition.is_current ? "" : primaryPosition.end_date,
+          is_current: primaryPosition.is_current,
+          description: primaryPosition.description || experience.description,
+          positions,
+        };
+      }).filter((experience) => experience.positions.length > 0),
+    }));
+  };
+
+  const addRichProfileItem = <K extends keyof ProfileData>(
+    key: K,
+    draft: ProfileData[K] extends Array<infer Item> ? Item & { id: string } : never,
+    requiredFields: string[],
+    resetDraft: () => void,
+  ) => {
+    const hasRequiredFields = requiredFields.every((field) => {
+      const value = draft[field as keyof typeof draft];
+
+      return typeof value === "string" && value.trim().length > 0;
+    });
+
+    if (!hasRequiredFields) {
+      toast.error("Preencha os campos obrigatórios antes de adicionar.");
+      return;
+    }
+
+    setProfile((current) => ({
+      ...current,
+      [key]: [
+        ...(current[key] as Array<typeof draft>),
+        {
+          ...draft,
+          id: crypto.randomUUID(),
+        },
+      ],
+    }));
+    resetDraft();
+  };
+
+  const removeRichProfileItem = <K extends keyof ProfileData>(key: K, id: string) => {
+    setProfile((current) => ({
+      ...current,
+      [key]: (current[key] as Array<{ id: string }>).filter((item) => item.id !== id),
     }));
   };
 
@@ -1215,6 +1530,23 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
                       }
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="experience-seniority">Senioridade da experiência</Label>
+                    <Select
+                      value={newExperience.seniority || "placeholder"}
+                      onValueChange={(value) => setNewExperience((current) => ({ ...current, seniority: value === "placeholder" ? "" : value as ProfileData["seniority"] }))}
+                    >
+                      <SelectTrigger id="experience-seniority" className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85">
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="placeholder">Selecione</SelectItem>
+                        <SelectItem value="junior">Júnior</SelectItem>
+                        <SelectItem value="pleno">Pleno</SelectItem>
+                        <SelectItem value="senior">Sênior</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="min-w-0">
                     <Label htmlFor="start-date">Data de início</Label>
                     <Input
@@ -1311,6 +1643,11 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
                         <p className="mt-2 text-sm text-muted-foreground">
                           {experience.start_date} {experience.is_current ? "• atual" : experience.end_date ? `• ${experience.end_date}` : ""}
                         </p>
+                        {experience.seniority ? (
+                          <Badge variant="secondary" className="mt-3 rounded-full bg-secondary/80 px-3 py-1 text-foreground">
+                            {SENIORITY_LABEL[experience.seniority]}
+                          </Badge>
+                        ) : null}
                         {experience.description ? (
                           <p className="mt-3 text-sm leading-6 text-foreground">{experience.description}</p>
                         ) : null}
@@ -1319,10 +1656,323 @@ const ProfessionalDashboard = ({ refreshUser }: { refreshUser: () => Promise<voi
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
+                    {experience.positions.length ? (
+                      <div className="mt-5 space-y-3 border-t border-border/70 pt-4">
+                        {experience.positions.map((position) => (
+                          <div key={position.id} className="rounded-[1.2rem] border border-border/80 bg-secondary/55 p-4">
+                            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                              <div>
+                                <p className="font-medium text-foreground">{position.role_title}</p>
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                  {getDateRangeLabel(position.start_date, position.end_date, position.is_current)}
+                                </p>
+                                {position.seniority ? (
+                                  <p className="mt-1 text-sm text-muted-foreground">{SENIORITY_LABEL[position.seniority]}</p>
+                                ) : null}
+                                {position.description ? (
+                                  <p className="mt-2 text-sm leading-6 text-foreground">{position.description}</p>
+                                ) : null}
+                              </div>
+                              {experience.positions.length > 1 ? (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  className="rounded-full"
+                                  onClick={() => removeExperiencePosition(experience.id, position.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                    <div className="mt-5 rounded-[1.4rem] border border-border/80 bg-secondary/45 p-4">
+                      <p className="text-sm font-medium text-foreground">Adicionar cargo ou promoção</p>
+                      <div className="mt-4 grid gap-4 md:grid-cols-2">
+                        <div>
+                          <Label htmlFor={`position-role-${experience.id}`}>Cargo</Label>
+                          <Input
+                            id={`position-role-${experience.id}`}
+                            className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85"
+                            value={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).role_title}
+                            onChange={(event) => updatePositionDraft(experience.id, {
+                              ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                              role_title: event.target.value,
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`position-seniority-${experience.id}`}>Senioridade na promoção</Label>
+                          <Select
+                            value={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).seniority || "placeholder"}
+                            onValueChange={(value) => updatePositionDraft(experience.id, {
+                              ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                              seniority: value === "placeholder" ? "" : value as ProfileData["seniority"],
+                            })}
+                          >
+                            <SelectTrigger id={`position-seniority-${experience.id}`} className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85">
+                              <SelectValue placeholder="Selecione" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="placeholder">Selecione</SelectItem>
+                              <SelectItem value="junior">Júnior</SelectItem>
+                              <SelectItem value="pleno">Pleno</SelectItem>
+                              <SelectItem value="senior">Sênior</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`position-start-${experience.id}`}>Data de início</Label>
+                          <Input
+                            id={`position-start-${experience.id}`}
+                            type={usesPlainTextExperienceDates ? "text" : "date"}
+                            className={experienceDateInputClassName}
+                            placeholder={usesPlainTextExperienceDates ? "AAAA-MM-DD" : undefined}
+                            value={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).start_date}
+                            onChange={(event) => updatePositionDraft(experience.id, {
+                              ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                              start_date: usesPlainTextExperienceDates ? formatExperienceDateInput(event.target.value) : event.target.value,
+                            })}
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`position-end-${experience.id}`}>Data de fim</Label>
+                          <Input
+                            id={`position-end-${experience.id}`}
+                            type={usesPlainTextExperienceDates ? "text" : "date"}
+                            className={experienceDateInputClassName}
+                            placeholder={usesPlainTextExperienceDates ? "AAAA-MM-DD" : undefined}
+                            disabled={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).is_current}
+                            value={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).end_date}
+                            onChange={(event) => updatePositionDraft(experience.id, {
+                              ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                              end_date: usesPlainTextExperienceDates ? formatExperienceDateInput(event.target.value) : event.target.value,
+                            })}
+                          />
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between gap-4 rounded-[1.2rem] border border-border/80 bg-white/75 p-4">
+                        <Label htmlFor={`position-current-${experience.id}`}>Cargo atual</Label>
+                        <Switch
+                          id={`position-current-${experience.id}`}
+                          checked={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).is_current}
+                          onCheckedChange={(checked) => updatePositionDraft(experience.id, {
+                            ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                            is_current: checked,
+                            end_date: checked ? "" : (positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).end_date,
+                          })}
+                        />
+                      </div>
+                      <div className="mt-4">
+                        <Label htmlFor={`position-description-${experience.id}`}>Descrição do cargo</Label>
+                        <Textarea
+                          id={`position-description-${experience.id}`}
+                          rows={3}
+                          className="mt-2 rounded-[1.4rem] border-border/80 bg-white/85"
+                          value={(positionDrafts[experience.id] || EMPTY_POSITION_DRAFT).description}
+                          onChange={(event) => updatePositionDraft(experience.id, {
+                            ...(positionDrafts[experience.id] || createEmptyPositionDraft()),
+                            description: event.target.value,
+                          })}
+                        />
+                      </div>
+                      <Button type="button" variant="outline" className="mt-4 rounded-full" onClick={() => addExperiencePosition(experience.id)}>
+                        <Plus className="h-4 w-4" />
+                        Adicionar cargo/promoção
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             </section>
+
+            <RichProfileSection
+              icon={GraduationCap}
+              title="Formação"
+              fields={[
+                { key: "institution", label: "Instituição", required: true },
+                { key: "degree", label: "Grau" },
+                { key: "field", label: "Área de estudo" },
+                { key: "start_date", label: "Início da formação", placeholder: "AAAA-MM-DD" },
+                { key: "end_date", label: "Fim da formação", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.educations}
+              draft={newEducation}
+              onDraftChange={setNewEducation}
+              onAdd={() => addRichProfileItem("educations", newEducation, ["institution"], () => setNewEducation(createEmptyEducationDraft()))}
+              onRemove={(id) => removeRichProfileItem("educations", id)}
+              addLabel="Adicionar formação"
+              getTitle={(item) => item.institution}
+              getSubtitle={(item) => [item.degree, item.field, getDateRangeLabel(item.start_date, item.end_date)].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={ShieldCheck}
+              title="Certificações"
+              fields={[
+                { key: "name", label: "Certificação", required: true },
+                { key: "issuer", label: "Emissor" },
+                { key: "issued_at", label: "Emissão da certificação", placeholder: "AAAA-MM-DD" },
+                { key: "credential_url", label: "URL da credencial" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.certifications}
+              draft={newCertification}
+              onDraftChange={setNewCertification}
+              onAdd={() => addRichProfileItem("certifications", newCertification, ["name"], () => setNewCertification(createEmptyCertificationDraft()))}
+              onRemove={(id) => removeRichProfileItem("certifications", id)}
+              addLabel="Adicionar certificação"
+              getTitle={(item) => item.name}
+              getSubtitle={(item) => [item.issuer, item.issued_at].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={Languages}
+              title="Idiomas"
+              fields={[
+                { key: "name", label: "Idioma", required: true },
+                { key: "proficiency", label: "Proficiência" },
+              ]}
+              items={profile.languages}
+              draft={newLanguage}
+              onDraftChange={setNewLanguage}
+              onAdd={() => addRichProfileItem("languages", newLanguage, ["name"], () => setNewLanguage(createEmptyLanguageDraft()))}
+              onRemove={(id) => removeRichProfileItem("languages", id)}
+              addLabel="Adicionar idioma"
+              getTitle={(item) => item.name}
+              getSubtitle={(item) => item.proficiency}
+            />
+
+            <RichProfileSection
+              icon={Briefcase}
+              title="Projetos"
+              fields={[
+                { key: "name", label: "Projeto", required: true },
+                { key: "role", label: "Papel" },
+                { key: "url", label: "URL pública" },
+                { key: "start_date", label: "Início do projeto", placeholder: "AAAA-MM-DD" },
+                { key: "end_date", label: "Fim do projeto", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.projects}
+              draft={newProject}
+              onDraftChange={setNewProject}
+              onAdd={() => addRichProfileItem("projects", newProject, ["name"], () => setNewProject(createEmptyProjectDraft()))}
+              onRemove={(id) => removeRichProfileItem("projects", id)}
+              addLabel="Adicionar projeto"
+              getTitle={(item) => item.name}
+              getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date)].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={FileText}
+              title="Publicações"
+              fields={[
+                { key: "title", label: "Título", required: true },
+                { key: "publisher", label: "Publicador" },
+                { key: "url", label: "URL pública" },
+                { key: "published_at", label: "Publicada em", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.publications}
+              draft={newPublication}
+              onDraftChange={setNewPublication}
+              onAdd={() => addRichProfileItem("publications", newPublication, ["title"], () => setNewPublication(createEmptyPublicationDraft()))}
+              onRemove={(id) => removeRichProfileItem("publications", id)}
+              addLabel="Adicionar publicação"
+              getTitle={(item) => item.title}
+              getSubtitle={(item) => [item.publisher, item.published_at].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={Users}
+              title="Voluntariado"
+              fields={[
+                { key: "organization", label: "Organização", required: true },
+                { key: "role", label: "Papel" },
+                { key: "start_date", label: "Início do voluntariado", placeholder: "AAAA-MM-DD" },
+                { key: "end_date", label: "Fim do voluntariado", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.volunteerExperiences}
+              draft={newVolunteerExperience}
+              onDraftChange={setNewVolunteerExperience}
+              onAdd={() => addRichProfileItem("volunteerExperiences", newVolunteerExperience, ["organization"], () => setNewVolunteerExperience(createEmptyVolunteerExperienceDraft()))}
+              onRemove={(id) => removeRichProfileItem("volunteerExperiences", id)}
+              addLabel="Adicionar voluntariado"
+              getTitle={(item) => item.organization}
+              getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date, item.is_current)].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={Trophy}
+              title="Prêmios"
+              fields={[
+                { key: "title", label: "Prêmio", required: true },
+                { key: "issuer", label: "Emissor" },
+                { key: "awarded_at", label: "Recebido em", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.awards}
+              draft={newAward}
+              onDraftChange={setNewAward}
+              onAdd={() => addRichProfileItem("awards", newAward, ["title"], () => setNewAward(createEmptyAwardDraft()))}
+              onRemove={(id) => removeRichProfileItem("awards", id)}
+              addLabel="Adicionar prêmio"
+              getTitle={(item) => item.title}
+              getSubtitle={(item) => [item.issuer, item.awarded_at].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={FileText}
+              title="Cursos"
+              fields={[
+                { key: "name", label: "Curso", required: true },
+                { key: "institution", label: "Instituição" },
+                { key: "completed_at", label: "Concluído em", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.courses}
+              draft={newCourse}
+              onDraftChange={setNewCourse}
+              onAdd={() => addRichProfileItem("courses", newCourse, ["name"], () => setNewCourse(createEmptyCourseDraft()))}
+              onRemove={(id) => removeRichProfileItem("courses", id)}
+              addLabel="Adicionar curso"
+              getTitle={(item) => item.name}
+              getSubtitle={(item) => [item.institution, item.completed_at].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
+
+            <RichProfileSection
+              icon={Building2}
+              title="Organizações"
+              fields={[
+                { key: "name", label: "Organização", required: true },
+                { key: "role", label: "Papel" },
+                { key: "start_date", label: "Início na organização", placeholder: "AAAA-MM-DD" },
+                { key: "end_date", label: "Fim na organização", placeholder: "AAAA-MM-DD" },
+                { key: "description", label: "Descrição", textarea: true },
+              ]}
+              items={profile.organizations}
+              draft={newOrganization}
+              onDraftChange={setNewOrganization}
+              onAdd={() => addRichProfileItem("organizations", newOrganization, ["name"], () => setNewOrganization(createEmptyOrganizationDraft()))}
+              onRemove={(id) => removeRichProfileItem("organizations", id)}
+              addLabel="Adicionar organização"
+              getTitle={(item) => item.name}
+              getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date, item.is_current)].filter(Boolean).join(" • ")}
+              getDescription={(item) => item.description}
+            />
 
             <section className="surface-panel p-7">
               <SectionTitle icon={Mail} title="Contato para recrutadores" />

@@ -536,6 +536,127 @@ describe("Dashboard", () => {
     expect(await screen.findByRole("link", { name: /ver perfil público/i })).toBeInTheDocument();
   });
 
+  it("renderiza e envia experiências com cargos e blocos ricos do perfil profissional", async () => {
+    mockUseAuth.mockReturnValue(buildProfessionalAuthValue());
+    mockProfileGet.mockResolvedValue(buildProfessionalProfileResponse({
+      profile: {
+        experiences: [
+          {
+            id: "exp-1",
+            role_title: "Staff Engineer",
+            company_name: "Analytical Engines",
+            start_date: "2022-01-01",
+            end_date: "",
+            is_current: true,
+            seniority: "senior",
+            description: "Progressão técnica em plataformas.",
+            positions: [
+              {
+                id: "pos-1",
+                role_title: "Senior Engineer",
+                seniority: "senior",
+                start_date: "2022-01-01",
+                end_date: "2023-12-31",
+                is_current: false,
+                description: "Arquitetura frontend.",
+              },
+              {
+                id: "pos-2",
+                role_title: "Staff Engineer",
+                seniority: "senior",
+                start_date: "2024-01-01",
+                end_date: "",
+                is_current: true,
+                description: "Liderança técnica.",
+              },
+            ],
+          },
+        ],
+        educations: [
+          {
+            id: "edu-1",
+            institution: "Universidade Livre",
+            degree: "Bacharelado",
+            field: "Ciência da Computação",
+            start_date: "2012-01-01",
+            end_date: "2016-12-01",
+            description: "",
+          },
+        ],
+        certifications: [
+          {
+            id: "cert-1",
+            name: "AWS Solutions Architect",
+            issuer: "AWS",
+            issued_at: "2025-01-01",
+            credential_url: "",
+            description: "",
+          },
+        ],
+        languages: [
+          {
+            id: "lang-1",
+            name: "Inglês",
+            proficiency: "Avançado",
+          },
+        ],
+        projects: [
+          {
+            id: "project-1",
+            name: "Plataforma de Dados",
+            role: "Tech Lead",
+            url: "",
+            start_date: "2024-01-01",
+            end_date: "",
+            description: "Pipeline de eventos.",
+            skills: ["Kafka"],
+          },
+        ],
+        publications: [],
+        volunteerExperiences: [],
+        awards: [],
+        courses: [],
+        organizations: [],
+      },
+    }));
+    mockProfileUpdate.mockResolvedValue(buildProfessionalProfileUpdateResponse());
+
+    render(
+      <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <Dashboard />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText(/senior engineer/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/staff engineer/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/universidade livre/i)).toBeInTheDocument();
+    expect(screen.getByText(/aws solutions architect/i)).toBeInTheDocument();
+    expect(screen.getByText(/inglês/i)).toBeInTheDocument();
+    expect(screen.getByText(/plataforma de dados/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /salvar alterações/i }));
+
+    await waitFor(() => {
+      expect(mockProfileUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          experiences: [
+            expect.objectContaining({
+              company_name: "Analytical Engines",
+              positions: [
+                expect.objectContaining({ role_title: "Senior Engineer" }),
+                expect.objectContaining({ role_title: "Staff Engineer" }),
+              ],
+            }),
+          ],
+          educations: [expect.objectContaining({ institution: "Universidade Livre" })],
+          certifications: [expect.objectContaining({ name: "AWS Solutions Architect" })],
+          languages: [expect.objectContaining({ name: "Inglês" })],
+          projects: [expect.objectContaining({ name: "Plataforma de Dados" })],
+        }),
+      );
+    });
+  });
+
   it("bloqueia a publicação enquanto houver pendências e destaca o checklist pendente em vermelho", async () => {
     mockUseAuth.mockReturnValue({
       user: {
