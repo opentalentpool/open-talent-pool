@@ -303,6 +303,25 @@ test("profissional publica perfil, recrutador favorita, salva busca e recebe um 
   ).toBeVisible();
   await professionalPage.getByPlaceholder(/react, node\.js, platform engineering/i).fill("Kubernetes");
   await professionalPage.getByRole("button", { name: /adicionar skill/i }).click();
+  await professionalPage.getByLabel(/^cargo$/i).fill("Platform Engineer");
+  await professionalPage.getByLabel(/^empresa$/i).fill("Analytical Engines");
+  await professionalPage.locator("#experience-seniority").click();
+  await professionalPage.getByRole("option", { name: /sênior/i }).click();
+  await professionalPage.getByLabel(/^data de início$/i).fill("2022-01-01");
+  await professionalPage.getByLabel(/^descrição$/i).first().fill("Plataformas Kubernetes para produtos digitais.");
+  await professionalPage.getByRole("button", { name: /adicionar experiência/i }).click();
+  await professionalPage.getByText(/^Formação$/i).click();
+  await professionalPage.getByLabel(/^instituição$/i).first().fill("Universidade Livre");
+  await professionalPage.getByLabel(/^área de estudo$/i).fill("Engenharia de Software");
+  await professionalPage.getByRole("button", { name: /adicionar formação/i }).click();
+  await professionalPage.getByText(/^Certificações$/i).click();
+  await professionalPage.getByLabel(/^certificação$/i).fill("AWS Solutions Architect");
+  await professionalPage.getByLabel(/^emissor$/i).first().fill("AWS");
+  await professionalPage.getByRole("button", { name: /adicionar certificação/i }).click();
+  await professionalPage.getByText(/^Idiomas$/i).click();
+  await professionalPage.getByLabel(/^idioma$/i).fill("Inglês");
+  await professionalPage.getByLabel(/^proficiência$/i).fill("Avançado");
+  await professionalPage.getByRole("button", { name: /adicionar idioma/i }).click();
   await professionalPage.getByRole("switch", { name: /tornar perfil público/i }).click();
   await professionalPage.getByRole("button", { name: /salvar alterações/i }).click();
 
@@ -315,8 +334,15 @@ test("profissional publica perfil, recrutador favorita, salva busca e recebe um 
   await expect(anonymousPage.getByText(/remoto, híbrido/i)).toBeVisible();
   await anonymousPage.getByRole("link", { name: /ver perfil público/i }).click();
   await expect(anonymousPage.getByRole("heading", { name: /ada lovelace/i })).toBeVisible();
+  await expect(anonymousPage.getByText(/platform engineer/i).first()).toBeVisible();
+  await expect(anonymousPage.getByText(/universidade livre/i)).toBeVisible();
+  await expect(anonymousPage.getByText(/aws solutions architect/i)).toBeVisible();
+  await expect(anonymousPage.getByText(/inglês/i)).toBeVisible();
   await expect(anonymousPage.getByText("ada@example.com")).toHaveCount(0);
   await expect(anonymousPage.getByText("(11) 99999-9999")).toHaveCount(0);
+
+  await anonymousPage.goto("/buscar?language=Ingl%C3%AAs&certification=AWS&education=Software");
+  await expect(anonymousPage.getByText(/ada lovelace/i)).toBeVisible();
 
   await page.goto("/buscar?q=kubernetes&state=SP&workModel=remoto");
   await expect(page.getByText(/ada lovelace/i)).toBeVisible();

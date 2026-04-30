@@ -202,12 +202,105 @@ export const accountDeletionSchema = z.object({
   ),
 });
 
-export const experienceSchema = z.object({
+export const experiencePositionSchema = z.object({
   id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
   role_title: z.preprocess(normalizeStringInput, z.string().max(140)),
+  seniority: optionalSeniority,
+  start_date: z.preprocess(normalizeStringInput, z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
+  end_date: z.preprocess(normalizeStringInput, z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).default("")),
+  is_current: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
+  description: optionalLongText,
+});
+
+export const experienceSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  role_title: z.preprocess(normalizeStringInput, z.string().max(140).default("")),
   company_name: z.preprocess(normalizeStringInput, z.string().max(140)),
   start_date: z.preprocess(normalizeStringInput, z.string().regex(/^\d{4}-\d{2}-\d{2}$/)),
   end_date: z.preprocess(normalizeStringInput, z.union([z.literal(""), z.string().regex(/^\d{4}-\d{2}-\d{2}$/)]).default("")),
+  is_current: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
+  seniority: optionalSeniority,
+  description: optionalLongText,
+  positions: z.array(experiencePositionSchema).max(20).default([]),
+});
+
+export const educationSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  institution: z.preprocess(normalizeStringInput, z.string().max(180)),
+  degree: optionalText,
+  field: optionalText,
+  start_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  end_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  description: optionalLongText,
+});
+
+export const certificationSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  name: z.preprocess(normalizeStringInput, z.string().max(180)),
+  issuer: optionalText,
+  issued_at: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  credential_url: optionalUrl,
+  description: optionalLongText,
+});
+
+export const languageSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  name: z.preprocess(normalizeStringInput, z.string().max(80)),
+  proficiency: optionalText,
+});
+
+export const projectSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  name: z.preprocess(normalizeStringInput, z.string().max(180)),
+  role: optionalText,
+  url: optionalUrl,
+  start_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  end_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  description: optionalLongText,
+  skills: z.array(z.preprocess(normalizeStringInput, z.string().min(1).max(60))).max(30).default([]),
+});
+
+export const publicationSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  title: z.preprocess(normalizeStringInput, z.string().max(220)),
+  publisher: optionalText,
+  url: optionalUrl,
+  published_at: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  description: optionalLongText,
+});
+
+export const volunteerExperienceSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  organization: z.preprocess(normalizeStringInput, z.string().max(180)),
+  role: optionalText,
+  start_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  end_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  is_current: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
+  description: optionalLongText,
+});
+
+export const awardSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  title: z.preprocess(normalizeStringInput, z.string().max(180)),
+  issuer: optionalText,
+  awarded_at: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  description: optionalLongText,
+});
+
+export const courseSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  name: z.preprocess(normalizeStringInput, z.string().max(180)),
+  institution: optionalText,
+  completed_at: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  description: optionalLongText,
+});
+
+export const organizationSchema = z.object({
+  id: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  name: z.preprocess(normalizeStringInput, z.string().max(180)),
+  role: optionalText,
+  start_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
+  end_date: z.preprocess(normalizeStringInput, z.string().max(20).default("")),
   is_current: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
   description: optionalLongText,
 });
@@ -225,6 +318,15 @@ export const profileInputSchema = z.object({
   showContactEmailToRecruiters: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
   skills: z.array(z.preprocess(normalizeStringInput, z.string().min(1).max(60))).max(50).default([]),
   experiences: z.array(experienceSchema).max(30).default([]),
+  educations: z.array(educationSchema).max(30).default([]),
+  certifications: z.array(certificationSchema).max(50).default([]),
+  languages: z.array(languageSchema).max(30).default([]),
+  projects: z.array(projectSchema).max(50).default([]),
+  publications: z.array(publicationSchema).max(50).default([]),
+  volunteerExperiences: z.array(volunteerExperienceSchema).max(30).default([]),
+  awards: z.array(awardSchema).max(50).default([]),
+  courses: z.array(courseSchema).max(50).default([]),
+  organizations: z.array(organizationSchema).max(30).default([]),
   seniority: optionalSeniority,
   workModels: optionalWorkModels,
   workModel: optionalWorkModel,
@@ -244,6 +346,9 @@ export const searchProfilesParamsSchema = z.object({
   workModel: optionalWorkModel,
   state: optionalState,
   openToOpportunities: z.preprocess(normalizeBooleanInput, z.boolean().default(false)),
+  language: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  certification: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
+  education: z.preprocess(normalizeStringInput, z.string().max(120).default("")),
   page: z.preprocess((value) => normalizeIntegerInput(value, 1), z.number().int().min(1).max(10_000).default(1)),
   pageSize: z.preprocess((value) => normalizeIntegerInput(value, 20), z.number().int().min(1).max(50).default(20)),
 });

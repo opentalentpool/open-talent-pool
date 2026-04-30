@@ -91,6 +91,9 @@ function createSuggestedSearchName(criteria: SavedSearchCriteria) {
     criteria.workModel ? WORK_MODEL_LABEL[criteria.workModel] : null,
     criteria.state ? criteria.state : null,
     criteria.openToOpportunities ? "Abertos" : null,
+    criteria.language ? `Idioma ${criteria.language}` : null,
+    criteria.certification ? `Certificação ${criteria.certification}` : null,
+    criteria.education ? `Formação ${criteria.education}` : null,
   ].filter(Boolean);
 
   return parts.length ? `Busca: ${parts.join(" • ")}` : "Minha busca de talentos";
@@ -230,8 +233,11 @@ const Search = () => {
       seniority: filters.seniority,
       workModel: filters.workModel,
       state: filters.state,
-      openToOpportunities: filters.openToOpportunities,
-    };
+    openToOpportunities: filters.openToOpportunities,
+    language: filters.language,
+    certification: filters.certification,
+    education: filters.education,
+  };
   }, [affirmativeRequest, filters, resultMode]);
 
   const activeFilters = useMemo(() => buildDisplayFilters(currentCriteriaForSaving), [currentCriteriaForSaving]);
@@ -881,6 +887,39 @@ const Search = () => {
                         <SelectItem value="presencial">Presencial</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="language-filter" className="text-sm font-medium text-foreground">Idioma</Label>
+                    <Input
+                      id="language-filter"
+                      className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85"
+                      value={filters.language}
+                      onChange={(event) => updateFilters({ language: event.target.value })}
+                      placeholder="Ex: Inglês"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="certification-filter" className="text-sm font-medium text-foreground">Certificação</Label>
+                    <Input
+                      id="certification-filter"
+                      className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85"
+                      value={filters.certification}
+                      onChange={(event) => updateFilters({ certification: event.target.value })}
+                      placeholder="Ex: AWS"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="education-filter" className="text-sm font-medium text-foreground">Formação</Label>
+                    <Input
+                      id="education-filter"
+                      className="mt-2 h-11 rounded-2xl border-border/80 bg-white/85"
+                      value={filters.education}
+                      onChange={(event) => updateFilters({ education: event.target.value })}
+                      placeholder="Ex: Engenharia de Software"
+                    />
                   </div>
 
                   <div className="rounded-[1.5rem] border border-border/80 bg-white/85 p-4">

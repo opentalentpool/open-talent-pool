@@ -16,6 +16,99 @@ export interface Experience {
   start_date: string;
   end_date: string;
   is_current: boolean;
+  seniority: Seniority;
+  description: string;
+  positions: ExperiencePosition[];
+}
+
+export interface ExperiencePosition {
+  id: string;
+  role_title: string;
+  seniority: Seniority;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  description: string;
+}
+
+export interface Education {
+  id: string;
+  institution: string;
+  degree: string;
+  field: string;
+  start_date: string;
+  end_date: string;
+  description: string;
+}
+
+export interface Certification {
+  id: string;
+  name: string;
+  issuer: string;
+  issued_at: string;
+  credential_url: string;
+  description: string;
+}
+
+export interface Language {
+  id: string;
+  name: string;
+  proficiency: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  role: string;
+  url: string;
+  start_date: string;
+  end_date: string;
+  description: string;
+  skills: string[];
+}
+
+export interface Publication {
+  id: string;
+  title: string;
+  publisher: string;
+  url: string;
+  published_at: string;
+  description: string;
+}
+
+export interface VolunteerExperience {
+  id: string;
+  organization: string;
+  role: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
+  description: string;
+}
+
+export interface Award {
+  id: string;
+  title: string;
+  issuer: string;
+  awarded_at: string;
+  description: string;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  institution: string;
+  completed_at: string;
+  description: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  role: string;
+  start_date: string;
+  end_date: string;
+  is_current: boolean;
   description: string;
 }
 
@@ -49,6 +142,15 @@ export interface ProfileData {
   showContactEmailToRecruiters: boolean;
   skills: string[];
   experiences: Experience[];
+  educations: Education[];
+  certifications: Certification[];
+  languages: Language[];
+  projects: Project[];
+  publications: Publication[];
+  volunteerExperiences: VolunteerExperience[];
+  awards: Award[];
+  courses: Course[];
+  organizations: Organization[];
   seniority: Seniority;
   workModels: WorkModel[];
   openToOpportunities: boolean;
@@ -94,6 +196,15 @@ export interface PublicProfileSummary {
 export interface PublicProfileDetail extends Omit<PublicProfileSummary, "bioExcerpt"> {
   bio: string;
   experiences: Experience[];
+  educations: Education[];
+  certifications: Certification[];
+  languages: Language[];
+  projects: Project[];
+  publications: Publication[];
+  volunteerExperiences: VolunteerExperience[];
+  awards: Award[];
+  courses: Course[];
+  organizations: Organization[];
   links: {
     linkedin: string;
     github: string;
@@ -107,6 +218,9 @@ export interface SearchProfilesParams {
   workModel: WorkModelFilter;
   state: string;
   openToOpportunities: boolean;
+  language: string;
+  certification: string;
+  education: string;
   page: number;
   pageSize: number;
 }
@@ -133,6 +247,9 @@ export interface SavedSearchCriteria {
   workModel: WorkModelFilter;
   state: string;
   openToOpportunities: boolean;
+  language: string;
+  certification: string;
+  education: string;
   affirmativeContext?: AffirmativeSearchContext;
   affirmativeFilters?: AffirmativeSearchFilters;
 }
@@ -169,6 +286,15 @@ export const createEmptyProfileData = (name = "", contactEmail = ""): ProfileDat
   showContactEmailToRecruiters: false,
   skills: [],
   experiences: [],
+  educations: [],
+  certifications: [],
+  languages: [],
+  projects: [],
+  publications: [],
+  volunteerExperiences: [],
+  awards: [],
+  courses: [],
+  organizations: [],
   seniority: "",
   workModels: [],
   openToOpportunities: false,
@@ -186,6 +312,9 @@ export const createDefaultSearchParams = (): SearchProfilesParams => ({
   workModel: "",
   state: "",
   openToOpportunities: false,
+  language: "",
+  certification: "",
+  education: "",
   page: 1,
   pageSize: 20,
 });

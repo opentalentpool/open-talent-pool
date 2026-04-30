@@ -36,6 +36,88 @@ const experienceSchema = z.object({
   start_date: z.string(),
   end_date: z.string(),
   is_current: z.boolean(),
+  seniority: senioritySchema.default(""),
+  description: z.string(),
+  positions: z.array(z.object({
+    id: z.string(),
+    role_title: z.string(),
+    seniority: senioritySchema.default(""),
+    start_date: z.string(),
+    end_date: z.string(),
+    is_current: z.boolean(),
+    description: z.string(),
+  })).default([]),
+});
+const educationSchema = z.object({
+  id: z.string(),
+  institution: z.string(),
+  degree: z.string(),
+  field: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  description: z.string(),
+});
+const certificationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  issuer: z.string(),
+  issued_at: z.string(),
+  credential_url: z.string(),
+  description: z.string(),
+});
+const languageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  proficiency: z.string(),
+});
+const projectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  url: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  description: z.string(),
+  skills: z.array(z.string()),
+});
+const publicationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  publisher: z.string(),
+  url: z.string(),
+  published_at: z.string(),
+  description: z.string(),
+});
+const volunteerExperienceSchema = z.object({
+  id: z.string(),
+  organization: z.string(),
+  role: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  is_current: z.boolean(),
+  description: z.string(),
+});
+const awardSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  issuer: z.string(),
+  awarded_at: z.string(),
+  description: z.string(),
+});
+const courseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  institution: z.string(),
+  completed_at: z.string(),
+  description: z.string(),
+});
+const organizationSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+  is_current: z.boolean(),
   description: z.string(),
 });
 const profileSchema = z.preprocess((value) => {
@@ -62,6 +144,15 @@ const profileSchema = z.preprocess((value) => {
   showContactEmailToRecruiters: z.boolean(),
   skills: z.array(z.string()),
   experiences: z.array(experienceSchema),
+  educations: z.array(educationSchema).default([]),
+  certifications: z.array(certificationSchema).default([]),
+  languages: z.array(languageSchema).default([]),
+  projects: z.array(projectSchema).default([]),
+  publications: z.array(publicationSchema).default([]),
+  volunteerExperiences: z.array(volunteerExperienceSchema).default([]),
+  awards: z.array(awardSchema).default([]),
+  courses: z.array(courseSchema).default([]),
+  organizations: z.array(organizationSchema).default([]),
   seniority: senioritySchema,
   workModels: z.array(workModelSchema),
   openToOpportunities: z.boolean(),
@@ -90,7 +181,9 @@ function isExperienceDraftEmpty(experience: Experience) {
     experience.start_date ||
     experience.end_date ||
     experience.description ||
-    experience.is_current
+    experience.is_current ||
+    experience.seniority ||
+    experience.positions.length > 0
   );
 }
 
@@ -130,7 +223,9 @@ export function createEmptyExperienceDraft(): Experience {
     start_date: "",
     end_date: "",
     is_current: false,
+    seniority: "",
     description: "",
+    positions: [],
   };
 }
 

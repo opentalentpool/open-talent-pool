@@ -67,6 +67,9 @@ export function formatSavedSearchCriteria(criteria: SavedSearchCriteria) {
     criteria.workModel ? `Modelo: ${criteria.workModel}` : null,
     criteria.state ? `Estado: ${criteria.state}` : null,
     criteria.openToOpportunities ? "Abertos a oportunidades" : null,
+    criteria.language ? `Idioma: ${criteria.language}` : null,
+    criteria.certification ? `Certificação: ${criteria.certification}` : null,
+    criteria.education ? `Formação: ${criteria.education}` : null,
   ].filter(Boolean);
 
   return parts.length ? parts.join(" • ") : "Sem filtros adicionais";
@@ -107,28 +110,37 @@ export function buildSearchParamsObject(searchParams: URLSearchParams): SearchPr
     workModel: (searchParams.get("workModel") ?? "") as SearchProfilesParams["workModel"],
     state: searchParams.get("state") ?? "",
     openToOpportunities: searchParams.get("openToOpportunities") === "true",
+    language: searchParams.get("language") ?? "",
+    certification: searchParams.get("certification") ?? "",
+    education: searchParams.get("education") ?? "",
     page: Math.max(1, Number.parseInt(searchParams.get("page") ?? "1", 10) || 1),
     pageSize: 20,
   };
 }
 
-export function buildSearchParamsFromCriteria(criteria: Pick<SearchProfilesParams, "q" | "seniority" | "workModel" | "state" | "openToOpportunities">) {
+export function buildSearchParamsFromCriteria(criteria: Pick<SearchProfilesParams, "q" | "seniority" | "workModel" | "state" | "openToOpportunities" | "language" | "certification" | "education">) {
   return {
     q: criteria.q,
     seniority: criteria.seniority,
     workModel: criteria.workModel,
     state: criteria.state,
     openToOpportunities: criteria.openToOpportunities,
+    language: criteria.language,
+    certification: criteria.certification,
+    education: criteria.education,
   };
 }
 
-export function formatAppliedSearchFilters(criteria: Pick<SearchProfilesParams, "q" | "seniority" | "workModel" | "state" | "openToOpportunities">) {
+export function formatAppliedSearchFilters(criteria: Pick<SearchProfilesParams, "q" | "seniority" | "workModel" | "state" | "openToOpportunities" | "language" | "certification" | "education">) {
   return [
     criteria.q ? `Busca: ${criteria.q}` : null,
     criteria.seniority ? `Senioridade: ${criteria.seniority}` : null,
     criteria.workModel ? `Modelo: ${criteria.workModel}` : null,
     criteria.state ? `Estado: ${criteria.state}` : null,
     criteria.openToOpportunities ? "Abertos a oportunidades" : null,
+    criteria.language ? `Idioma: ${criteria.language}` : null,
+    criteria.certification ? `Certificação: ${criteria.certification}` : null,
+    criteria.education ? `Formação: ${criteria.education}` : null,
   ].filter(Boolean) as string[];
 }
 

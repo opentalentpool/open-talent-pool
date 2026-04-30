@@ -74,6 +74,8 @@ describe("Search", () => {
   });
 
   it("sincroniza os filtros com a URL e carrega resultados reais", async () => {
+    const user = userEvent.setup();
+
     mockSearch.mockResolvedValue({
       items: [
         {
@@ -115,6 +117,24 @@ describe("Search", () => {
     expect(screen.getByDisplayValue("react")).toBeInTheDocument();
     expect(screen.getByText(/ada lovelace/i)).toBeInTheDocument();
     expect(screen.getByText(/remoto, híbrido/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText(/idioma/i), "Inglês");
+    await user.type(screen.getByLabelText(/certificação/i), "AWS");
+    await user.type(screen.getByLabelText(/formação/i), "Software");
+
+    await waitFor(() => {
+      expect(mockSearch).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          q: "react",
+          state: "SP",
+          language: "Inglês",
+          certification: "AWS",
+          education: "Software",
+          page: 1,
+          pageSize: 20,
+        }),
+      );
+    });
 
     expect(mockSearch).toHaveBeenCalledWith(
       expect.objectContaining({

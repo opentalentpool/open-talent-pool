@@ -3,12 +3,18 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Briefcase,
+  Building2,
   ExternalLink,
+  FileText,
+  GraduationCap,
   Heart,
+  Languages,
   Loader2,
   Mail,
   MapPin,
   ShieldCheck,
+  Trophy,
+  Users,
 } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -28,6 +34,55 @@ import type {
   ReportSubmissionStatus,
 } from "@/types/moderation";
 import type { PublicProfileDetail } from "@/types/profile";
+
+function getDateRangeLabel(startDate: string, endDate: string, isCurrent = false) {
+  return [startDate, isCurrent ? "atual" : endDate].filter(Boolean).join(" • ");
+}
+
+function PublicProfileRichSection<T extends { id: string }>({
+  title,
+  icon: Icon,
+  items,
+  getTitle,
+  getSubtitle,
+  getDescription,
+}: {
+  title: string;
+  icon: typeof Briefcase;
+  items: T[];
+  getTitle: (item: T) => string;
+  getSubtitle?: (item: T) => string;
+  getDescription?: (item: T) => string;
+}) {
+  if (!items.length) {
+    return null;
+  }
+
+  return (
+    <section className="mt-8">
+      <div className="surface-panel p-8 md:p-10">
+        <div className="flex items-center gap-3">
+          <Icon className="h-5 w-5 text-[hsl(var(--accent))]" />
+          <p className="eyebrow">{title}</p>
+        </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {items.map((item) => {
+            const subtitle = getSubtitle?.(item);
+            const description = getDescription?.(item);
+
+            return (
+              <article key={item.id} className="rounded-[1.3rem] border border-border/80 bg-white/70 p-5">
+                <h3 className="text-xl leading-tight">{getTitle(item)}</h3>
+                {subtitle ? <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p> : null}
+                {description ? <p className="mt-3 text-sm leading-6 text-muted-foreground">{description}</p> : null}
+              </article>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 function getPublicProfileErrorCopy(errorCode: string) {
   if (errorCode === "profile_not_found") {
@@ -466,11 +521,36 @@ const PublicProfile = () => {
                           {experience.start_date} {experience.is_current ? "• atual" : experience.end_date ? `• ${experience.end_date}` : ""}
                         </p>
                         <p className="mt-2 text-sm text-muted-foreground">{experience.company_name}</p>
+                        {experience.seniority ? (
+                          <p className="mt-2 text-sm text-muted-foreground">{SENIORITY_LABEL[experience.seniority]}</p>
+                        ) : null}
                       </div>
                       <div>
                         <h3 className="text-2xl leading-tight">{experience.role_title}</h3>
                         {experience.description ? (
                           <p className="mt-3 text-sm leading-7 text-muted-foreground">{experience.description}</p>
+                        ) : null}
+                        {experience.positions.length > 0 ? (
+                          <div className="mt-5 space-y-3">
+                            {experience.positions.map((position) => (
+                              <div key={position.id} className="rounded-[1.2rem] border border-border/80 bg-secondary/55 p-4">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <h4 className="font-medium text-foreground">{position.role_title}</h4>
+                                  {position.seniority ? (
+                                    <Badge variant="secondary" className="rounded-full bg-secondary/90 px-3 py-1 text-foreground">
+                                      {SENIORITY_LABEL[position.seniority]}
+                                    </Badge>
+                                  ) : null}
+                                </div>
+                                <p className="mt-2 text-sm text-muted-foreground">
+                                  {getDateRangeLabel(position.start_date, position.end_date, position.is_current)}
+                                </p>
+                                {position.description ? (
+                                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{position.description}</p>
+                                ) : null}
+                              </div>
+                            ))}
+                          </div>
                         ) : null}
                       </div>
                     </div>
@@ -479,6 +559,86 @@ const PublicProfile = () => {
               )}
             </div>
           </section>
+
+          <PublicProfileRichSection
+            title="Formação"
+            icon={GraduationCap}
+            items={profile.educations}
+            getTitle={(item) => item.institution}
+            getSubtitle={(item) => [item.degree, item.field, getDateRangeLabel(item.start_date, item.end_date)].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Certificações"
+            icon={ShieldCheck}
+            items={profile.certifications}
+            getTitle={(item) => item.name}
+            getSubtitle={(item) => [item.issuer, item.issued_at].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Idiomas"
+            icon={Languages}
+            items={profile.languages}
+            getTitle={(item) => item.name}
+            getSubtitle={(item) => item.proficiency}
+          />
+
+          <PublicProfileRichSection
+            title="Projetos"
+            icon={Briefcase}
+            items={profile.projects}
+            getTitle={(item) => item.name}
+            getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date)].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Publicações"
+            icon={FileText}
+            items={profile.publications}
+            getTitle={(item) => item.title}
+            getSubtitle={(item) => [item.publisher, item.published_at].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Voluntariado"
+            icon={Users}
+            items={profile.volunteerExperiences}
+            getTitle={(item) => item.organization}
+            getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date, item.is_current)].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Prêmios"
+            icon={Trophy}
+            items={profile.awards}
+            getTitle={(item) => item.title}
+            getSubtitle={(item) => [item.issuer, item.awarded_at].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Cursos"
+            icon={FileText}
+            items={profile.courses}
+            getTitle={(item) => item.name}
+            getSubtitle={(item) => [item.institution, item.completed_at].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
+
+          <PublicProfileRichSection
+            title="Organizações"
+            icon={Building2}
+            items={profile.organizations}
+            getTitle={(item) => item.name}
+            getSubtitle={(item) => [item.role, getDateRangeLabel(item.start_date, item.end_date, item.is_current)].filter(Boolean).join(" • ")}
+            getDescription={(item) => item.description}
+          />
         </div>
       </main>
 

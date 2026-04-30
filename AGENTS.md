@@ -34,7 +34,7 @@ Na visão do produto, profissionais podem manter perfis técnicos pesquisáveis 
 - UI com `Tailwind CSS` e `shadcn/ui`
 - Autenticação por e-mail + código com `challengeId`, Cloudflare Turnstile e sessão opaca server-side em cookie `HttpOnly`
 - Busca pública conectada ao banco real
-- Perfil profissional editável
+- Perfil profissional editável, com experiências agrupadas por empresa, cargos/promoções, formação, certificações, idiomas, projetos, publicações, voluntariado, prêmios, cursos e organizações
 - Favoritos, buscas salvas e alertas por e-mail para recrutadores
 - Fila global de e-mails com `email_outbox` no Postgres como fonte de verdade, `Redis + BullMQ` como camada de execução e prioridade máxima para auth
 - Infraestrutura base de testes com `Vitest`, `React Testing Library`, `Supertest` e configuração de `Playwright`
@@ -103,6 +103,7 @@ Use sempre os termos abaixo como linguagem canônica do produto:
 - Só usar atributos explícitos, autodeclarados e tratados com transparência quando isso fizer parte de uma política clara do produto.
 - Quando o produto se referir a grupos como pessoas trans e pessoas não binárias em contexto coletivo, preferir o termo `LGBTQIAPN+`. Se a funcionalidade não distinguir subgrupos de forma explícita, usar a categoria coletiva em vez de rótulos específicos que possam excluir outras pessoas do mesmo recorte.
 - Em funcionalidades de descoberta, priorizar clareza, auditabilidade e não discriminação indevida.
+- Recomendações ou depoimentos de terceiros não devem ser publicados sem fluxo explícito de convite, consentimento, denúncia, moderação e auditoria.
 
 ### Arquitetura e manutenção
 
