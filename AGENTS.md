@@ -133,6 +133,23 @@ Durante a implementação, a IA deve:
 - Em UI, evitar copy autoexplicativa, meta ou hipotética em estado neutro. A interface não deve explicar fluxos que não estão acontecendo no momento nem justificar suas próprias decisões visuais; mensagens desse tipo só devem aparecer quando acionadas por um estado real, erro real ou ação real do usuário.
 - Em auth, mensagens externas devem continuar genéricas o suficiente para não facilitar enumeração de contas.
 
+### Fluxo atual de desenvolvimento e proteção do repositório
+
+- `main` é branch protegida. Não assumir que `git push origin main` será aceito, mesmo com permissão de escrita.
+- Se o push direto para `main` falhar com `GH006` ou exigência de status checks, não tentar contornar a proteção. Criar uma branch de trabalho a partir do commit local, subir essa branch e abrir PR contra `main`.
+- Antes de publicar qualquer mudança, usar plano conservador de allowlist: `git status --short --branch`, revisar o diff, adicionar apenas os arquivos do escopo com `git add <caminhos>`, e executar `git diff --cached --check`.
+- Fluxo padrão de publicação:
+  1. Validar localmente o menor conjunto relevante de checks.
+  2. Criar commit único e descritivo para a correção.
+  3. Fazer push de uma branch nomeada pelo objetivo da mudança.
+  4. Abrir PR com resumo objetivo e validações executadas.
+  5. Aguardar os checks remotos do PR antes de considerar a entrega concluída.
+- Os workflows remotos atualmente relevantes incluem `CI`, `Security`, `Docker Smoke` e `E2E`. Dependendo dos caminhos alterados, alguns podem não disparar no PR.
+- Para acompanhar o PR, preferir `gh pr checks <PR> --watch --interval 15 --fail-fast=false`.
+- Se um check falhar, coletar o log do workflow/job com `gh run view <run_id> --log-failed` ou ferramenta equivalente, identificar a causa concreta e corrigir no mesmo PR.
+- Não marcar a entrega como concluída apenas porque o push foi aceito. A entrega só está pronta quando os checks remotos relevantes estiverem verdes ou quando uma falha externa/fora de escopo for explicitamente identificada.
+- Não fazer merge automaticamente sem pedido explícito do usuário.
+
 Ao finalizar, a IA deve:
 
 - informar o que mudou;

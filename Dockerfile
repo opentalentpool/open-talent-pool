@@ -1,4 +1,4 @@
-FROM node:18-alpine AS base
+FROM node:20-alpine AS base
 WORKDIR /app
 COPY package.json pnpm-lock.yaml* pnpm-workspace.yaml ./
 COPY server/package.json ./server/package.json
@@ -26,7 +26,7 @@ COPY --from=web-build /app/dist /usr/share/nginx/html
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
 
-FROM node:18-alpine AS server
+FROM node:20-alpine AS server
 WORKDIR /app/server
 ENV NODE_ENV=production
 COPY --from=server-deploy /app/package.json /app/package.json
