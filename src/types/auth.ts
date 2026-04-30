@@ -38,8 +38,10 @@ export interface AuthActionResponse {
 
 export interface AuthMeResponse {
   user: AuthUser;
+  csrfToken: string;
 }
 
 export interface AuthVerifyResponse {
   user: AuthUser;
+  csrfToken: string;
 }

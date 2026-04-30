@@ -29,6 +29,14 @@ import type {
 } from "@/types/moderation";
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "");
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+const PUBLIC_AUTH_MUTATION_PATHS = new Set([
+  "/api/auth/signup",
+  "/api/auth/request-code",
+  "/api/auth/verify",
+]);
+
+let csrfToken: string | null = null;
 
 function createQueryString(params: Record<string, string | number | boolean | undefined>) {
   const searchParams = new URLSearchParams();
@@ -46,14 +54,75 @@ function createQueryString(params: Record<string, string | number | boolean | un
   return query ? `?${query}` : "";
 }
 
+function normalizeMethod(opts: RequestInit) {
+  return String(opts.method || "GET").toUpperCase();
+}
+
+function isMutatingMethod(method: string) {
+  return ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+}
+
+function shouldAttachCsrf(path: string, opts: RequestInit) {
+  const method = normalizeMethod(opts);
+  return isMutatingMethod(method) && !PUBLIC_AUTH_MUTATION_PATHS.has(path);
+}
+
+function withCsrfHeader(opts: RequestInit, token: string): RequestInit {
+  return {
+    ...opts,
+    headers: {
+      ...((opts.headers || {}) as Record<string, string>),
+      [CSRF_HEADER_NAME]: token,
+    },
+  };
+}
+
+function captureCsrfToken(json: unknown) {
+  if (json && typeof json === "object" && "csrfToken" in json) {
+    const nextToken = (json as { csrfToken?: unknown }).csrfToken;
+
+    if (typeof nextToken === "string" && nextToken) {
+      csrfToken = nextToken;
+    }
+  }
+}
+
+function clearCsrfToken() {
+  csrfToken = null;
+}
+
+async function fetchCsrfToken() {
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  const response = await request<{ csrfToken: string }>("/api/auth/csrf", {
+    method: "GET",
+  });
+
+  csrfToken = response.csrfToken;
+  return csrfToken;
+}
+
 async function request<T>(path: string, opts: RequestInit = {}) {
+  const requestOptions = shouldAttachCsrf(path, opts)
+    ? withCsrfHeader(opts, await fetchCsrfToken())
+    : opts;
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
-    ...opts,
+    ...requestOptions,
   });
   const json = await response.json().catch(() => ({}));
+  captureCsrfToken(json);
 
   if (!response.ok) {
+    if (
+      response.status === 401 ||
+      (json && typeof json === "object" && ["invalid_session", "missing_session", "invalid_csrf_token"].includes(String((json as { error?: unknown }).error || "")))
+    ) {
+      clearCsrfToken();
+    }
+
     throw json;
   }
 
@@ -88,6 +157,8 @@ export const authApi = {
   signOut: () =>
     request<{ ok: true }>("/api/auth/signout", {
       method: "POST",
+    }).finally(() => {
+      clearCsrfToken();
     }),
   me: () =>
     request<AuthMeResponse>("/api/auth/me", {
@@ -102,6 +173,9 @@ export const authApi = {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+    }).then((response) => {
+      clearCsrfToken();
+      return response;
     }),
   setActiveRole: (payload: { role: PublicAccountRole }) =>
     request<{ user: AuthUser }>("/api/auth/active-role", {

@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
   last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   idle_expires_at TIMESTAMPTZ NOT NULL,
   absolute_expires_at TIMESTAMPTZ NOT NULL,
+  csrf_token_hash TEXT,
   revoked_at TIMESTAMPTZ,
   revoked_reason TEXT,
   created_ip TEXT,
@@ -119,6 +120,7 @@ CREATE TABLE IF NOT EXISTS auth_sessions (
 );
 
 ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS active_role TEXT;
+ALTER TABLE auth_sessions ADD COLUMN IF NOT EXISTS csrf_token_hash TEXT;
 
 CREATE INDEX IF NOT EXISTS auth_sessions_user_id_idx
   ON auth_sessions (user_id, created_at DESC);

@@ -704,6 +704,24 @@ function createApp({
     return next();
   };
 
+  function csrfMutationMiddleware(req, res, next) {
+    if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+      return next();
+    }
+
+    if (req.path.startsWith("/test/")) {
+      return next();
+    }
+
+    return authMiddleware(req, res, () => {
+      if (!authService.isValidCsrfToken(req.user, req.get("x-csrf-token"))) {
+        return res.status(403).json({ error: "invalid_csrf_token" });
+      }
+
+      return next();
+    });
+  }
+
   app.post("/api/auth/signup", async (req, res) => {
     const parsed = authSignUpSchema.safeParse(req.body);
 
@@ -777,12 +795,24 @@ function createApp({
     }
   });
 
+  app.use("/api", csrfMutationMiddleware);
+
   app.post("/api/auth/signout", async (req, res) => {
     try {
       const response = await authService.signOut(req, res);
       return res.json(response);
     } catch (error) {
       return handleAuthError(res, error, logger);
+    }
+  });
+
+  app.get("/api/auth/csrf", authMiddleware, async (req, res) => {
+    try {
+      const csrfToken = await authService.issueCsrfToken(req.user.sessionId);
+      return res.json({ csrfToken });
+    } catch (error) {
+      logger.error(error);
+      return res.status(500).json({ error: "server_error" });
     }
   });
 
@@ -797,7 +827,8 @@ function createApp({
         return res.status(404).json({ error: "user_not_found" });
       }
 
-      return res.json({ user: shapeAuthUser(users.rows[0], req.user) });
+      const csrfToken = await authService.issueCsrfToken(req.user.sessionId);
+      return res.json({ user: shapeAuthUser(users.rows[0], req.user), csrfToken });
     } catch (error) {
       logger.error(error);
       return res.status(500).json({ error: "server_error" });
