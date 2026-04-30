@@ -99,6 +99,7 @@ describe("production deploy script", () => {
     expect(deployScript).toContain("docker compose --profile production");
     expect(deployScript).toContain("docker compose --profile production config --quiet");
     expect(deployScript).toContain("docker compose --profile production up -d --build");
+    expect(deployScript).toContain("docker compose --profile production up -d --no-deps --force-recreate proxy");
     expect(deployScript).toContain("/api/health");
   });
 });
