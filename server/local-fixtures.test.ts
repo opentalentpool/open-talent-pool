@@ -45,6 +45,11 @@ function normalizeCountRow(row: Record<string, number | number[]>) {
   );
 }
 
+function expectNonEmptyText(value: unknown) {
+  expect(typeof value).toBe("string");
+  expect(String(value).trim().length).toBeGreaterThan(0);
+}
+
 describe("local fixtures", () => {
   it("gera emails reservados por padrao e suporta mailbox unica com plus addressing", () => {
     expect(buildLocalFixtureEmail({ role: "professional", index: 1 })).toBe(
@@ -115,6 +120,113 @@ describe("local fixtures", () => {
       const firstName = professional.name.split(" ")[0];
       expect(nonWomenNamePool.has(firstName)).toBe(true);
       expect(womenNamePool.has(firstName)).toBe(false);
+    }
+  });
+
+  it("preenche todos os blocos exibidos no perfil publico", () => {
+    const dataset = buildLocalFixtureDataset({ professionalCount: 3, recruiterCount: 0 });
+
+    for (const professional of dataset.professionals) {
+      const profile = professional.profile;
+
+      for (const field of ["name", "city", "state", "bio", "headline", "linkedin", "github", "portfolio"]) {
+        expectNonEmptyText(profile[field as keyof typeof profile]);
+      }
+
+      expect(profile.contactEmail).toBe(professional.email);
+      expect(profile.showContactEmailToRecruiters).toBe(true);
+      expect(profile.skills.length).toBeGreaterThan(0);
+      expect(profile.workModels.length).toBeGreaterThan(0);
+      expectNonEmptyText(profile.seniority);
+
+      expect(profile.experiences.length).toBeGreaterThan(0);
+      for (const experience of profile.experiences) {
+        for (const field of ["role_title", "company_name", "start_date", "seniority", "description"]) {
+          expectNonEmptyText(experience[field as keyof typeof experience]);
+        }
+        if (!experience.is_current) {
+          expectNonEmptyText(experience.end_date);
+        }
+        expect(experience.positions.length).toBeGreaterThan(0);
+        for (const position of experience.positions) {
+          for (const field of ["role_title", "seniority", "start_date", "description"]) {
+            expectNonEmptyText(position[field as keyof typeof position]);
+          }
+          if (!position.is_current) {
+            expectNonEmptyText(position.end_date);
+          }
+        }
+      }
+
+      expect(profile.educations.length).toBeGreaterThan(0);
+      for (const education of profile.educations) {
+        for (const field of ["institution", "degree", "field", "start_date", "end_date", "description"]) {
+          expectNonEmptyText(education[field as keyof typeof education]);
+        }
+      }
+
+      expect(profile.certifications.length).toBeGreaterThan(0);
+      for (const certification of profile.certifications) {
+        for (const field of ["name", "issuer", "issued_at", "credential_url", "description"]) {
+          expectNonEmptyText(certification[field as keyof typeof certification]);
+        }
+      }
+
+      expect(profile.languages.length).toBeGreaterThan(0);
+      for (const language of profile.languages) {
+        for (const field of ["name", "proficiency"]) {
+          expectNonEmptyText(language[field as keyof typeof language]);
+        }
+      }
+
+      expect(profile.projects.length).toBeGreaterThan(0);
+      for (const project of profile.projects) {
+        for (const field of ["name", "role", "url", "start_date", "end_date", "description"]) {
+          expectNonEmptyText(project[field as keyof typeof project]);
+        }
+        expect(project.skills.length).toBeGreaterThan(0);
+      }
+
+      expect(profile.publications.length).toBeGreaterThan(0);
+      for (const publication of profile.publications) {
+        for (const field of ["title", "publisher", "url", "published_at", "description"]) {
+          expectNonEmptyText(publication[field as keyof typeof publication]);
+        }
+      }
+
+      expect(profile.volunteerExperiences.length).toBeGreaterThan(0);
+      for (const volunteerExperience of profile.volunteerExperiences) {
+        for (const field of ["organization", "role", "start_date", "description"]) {
+          expectNonEmptyText(volunteerExperience[field as keyof typeof volunteerExperience]);
+        }
+        if (!volunteerExperience.is_current) {
+          expectNonEmptyText(volunteerExperience.end_date);
+        }
+      }
+
+      expect(profile.awards.length).toBeGreaterThan(0);
+      for (const award of profile.awards) {
+        for (const field of ["title", "issuer", "awarded_at", "description"]) {
+          expectNonEmptyText(award[field as keyof typeof award]);
+        }
+      }
+
+      expect(profile.courses.length).toBeGreaterThan(0);
+      for (const course of profile.courses) {
+        for (const field of ["name", "institution", "completed_at", "description"]) {
+          expectNonEmptyText(course[field as keyof typeof course]);
+        }
+      }
+
+      expect(profile.organizations.length).toBeGreaterThan(0);
+      for (const organization of profile.organizations) {
+        for (const field of ["name", "role", "start_date", "description"]) {
+          expectNonEmptyText(organization[field as keyof typeof organization]);
+        }
+        if (!organization.is_current) {
+          expectNonEmptyText(organization.end_date);
+        }
+      }
     }
   });
 
