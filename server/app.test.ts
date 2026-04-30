@@ -70,6 +70,21 @@ function extractCookie(response) {
   return response.headers["set-cookie"]?.map((value) => value.split(";")[0]).join("; ") || "";
 }
 
+function csrfHeaders(session) {
+  return {
+    Cookie: session.cookie,
+    "X-CSRF-Token": session.csrfToken,
+  };
+}
+
+function applySession(requestBuilder, sessionOrCookie) {
+  if (typeof sessionOrCookie === "string") {
+    return requestBuilder.set("Cookie", sessionOrCookie);
+  }
+
+  return requestBuilder.set(csrfHeaders(sessionOrCookie));
+}
+
 async function createTestContext(configOverrides = {}) {
   const database = newDb({ autoCreateForeignKeyIndices: true });
   const { Pool } = database.adapters.createPg();
@@ -210,6 +225,7 @@ async function createAndVerifyUser(app, sendCodeEmail, { name, email, role }) {
     challengeId,
     code,
     cookie,
+    csrfToken: verification.body.csrfToken,
     verification,
   };
 }
@@ -244,7 +260,7 @@ async function publishProfessional(app, cookie, overrides = {}) {
     ...restOverrides,
   };
 
-  return request(app).put("/api/auth/profile").set("Cookie", cookie).send(profilePayload);
+  return applySession(request(app).put("/api/auth/profile"), cookie).send(profilePayload);
 }
 
 async function promoteUserToAdministrator(pool, userId) {
@@ -282,6 +298,7 @@ async function signInWithCode(app, sendCodeEmail, email) {
     challengeId,
     code,
     cookie: extractCookie(verification),
+    csrfToken: verification.body.csrfToken,
     verification,
   };
 }
@@ -602,7 +619,7 @@ describe("createApp", () => {
 
     const enableRecruiterRole = await request(app)
       .post("/api/auth/roles/enable")
-      .set("Cookie", signIn.cookie)
+      .set(csrfHeaders(signIn))
       .send({
         role: "recruiter",
         makeActive: true,
@@ -613,7 +630,7 @@ describe("createApp", () => {
 
     const listUsers = await request(app)
       .get("/api/admin/users")
-      .set("Cookie", signIn.cookie);
+      .set(csrfHeaders(signIn));
 
     expect(listUsers.status).toBe(200);
     expect(listUsers.body.users).toEqual(
@@ -634,7 +651,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, candidate.cookie, {
+    const publish = await publishProfessional(app, candidate, {
       name: "Teammate Internal",
     });
     expect(publish.status).toBe(200);
@@ -644,7 +661,7 @@ describe("createApp", () => {
     const listBeforePromotion = await request(app)
       .get("/api/admin/users")
       .query({ query: "teammate" })
-      .set("Cookie", actingAdmin.cookie);
+      .set(csrfHeaders(actingAdmin));
 
     expect(listBeforePromotion.status).toBe(200);
     expect(listBeforePromotion.body.users).toEqual([
@@ -661,7 +678,7 @@ describe("createApp", () => {
 
     const promote = await request(app)
       .post(`/api/admin/users/${candidate.user.id}/promote-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({
         reason: "Conta movida para operações administrativas internas.",
       });
@@ -702,7 +719,7 @@ describe("createApp", () => {
 
     const revokedCurrentSession = await request(app)
       .get("/api/auth/me")
-      .set("Cookie", candidate.cookie);
+      .set(csrfHeaders(candidate));
     expect(revokedCurrentSession.status).toBe(401);
     expect(revokedCurrentSession.body.error).toBe("invalid_session");
 
@@ -764,21 +781,21 @@ describe("createApp", () => {
 
     const externalPromotion = await request(app)
       .post(`/api/admin/users/${external.user.id}/promote-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({ reason: "Tentativa externa." });
     expect(externalPromotion.status).toBe(403);
     expect(externalPromotion.body.error).toBe("internal_admin_domain_required");
 
     const pendingPromotion = await request(app)
       .post(`/api/admin/users/${pendingInternalUser.rows[0].id}/promote-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({ reason: "Tentativa não verificada." });
     expect(pendingPromotion.status).toBe(403);
     expect(pendingPromotion.body.error).toBe("verified_internal_account_required");
 
     const reservedPromotion = await request(app)
       .post(`/api/admin/users/${reservedUser.rows[0].id}/promote-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({ reason: "Tentativa reservada." });
     expect(reservedPromotion.status).toBe(403);
     expect(reservedPromotion.body.error).toBe("reserved_internal_admin_locked");
@@ -795,14 +812,14 @@ describe("createApp", () => {
 
     const enableRecruiter = await request(app)
       .post("/api/auth/roles/enable")
-      .set("Cookie", candidate.cookie)
+      .set(csrfHeaders(candidate))
       .send({
         role: "recruiter",
         makeActive: false,
       });
     expect(enableRecruiter.status).toBe(200);
 
-    const publish = await publishProfessional(app, candidate.cookie, {
+    const publish = await publishProfessional(app, candidate, {
       name: "Dual Internal",
     });
     expect(publish.status).toBe(200);
@@ -811,7 +828,7 @@ describe("createApp", () => {
 
     const promote = await request(app)
       .post(`/api/admin/users/${candidate.user.id}/promote-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({
         reason: "Conta elevada para administração.",
       });
@@ -822,7 +839,7 @@ describe("createApp", () => {
 
     const revoke = await request(app)
       .post(`/api/admin/users/${candidate.user.id}/revoke-admin`)
-      .set("Cookie", actingAdmin.cookie)
+      .set(csrfHeaders(actingAdmin))
       .send({
         reason: "A conta voltou ao escopo público interno.",
       });
@@ -860,7 +877,7 @@ describe("createApp", () => {
 
     const revokedAdminSession = await request(app)
       .get("/api/auth/me")
-      .set("Cookie", candidateAdminSession.cookie);
+      .set(csrfHeaders(candidateAdminSession));
     expect(revokedAdminSession.status).toBe(401);
     expect(revokedAdminSession.body.error).toBe("invalid_session");
 
@@ -1141,18 +1158,19 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const meResponse = await request(app).get("/api/auth/me").set("Cookie", verifiedUser.cookie);
+    const meResponse = await request(app).get("/api/auth/me").set(csrfHeaders(verifiedUser));
 
     expect(meResponse.status).toBe(200);
     expect(meResponse.body.user.email).toBe("cookie@example.com");
+    verifiedUser.csrfToken = meResponse.body.csrfToken;
 
-    const signout = await request(app).post("/api/auth/signout").set("Cookie", verifiedUser.cookie);
+    const signout = await request(app).post("/api/auth/signout").set(csrfHeaders(verifiedUser));
 
     expect(signout.status).toBe(200);
     expect(signout.body).toEqual({ ok: true });
     expect(signout.headers["set-cookie"]?.[0]).toContain("otp_session=");
 
-    const afterSignout = await request(app).get("/api/auth/me").set("Cookie", verifiedUser.cookie);
+    const afterSignout = await request(app).get("/api/auth/me").set(csrfHeaders(verifiedUser));
 
     expect(afterSignout.status).toBe(401);
     expect(afterSignout.body.error).toBe("invalid_session");
@@ -1166,7 +1184,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const meBefore = await request(app).get("/api/auth/me").set("Cookie", professional.cookie);
+    const meBefore = await request(app).get("/api/auth/me").set(csrfHeaders(professional));
 
     expect(meBefore.status).toBe(200);
     expect(meBefore.body.user).toMatchObject({
@@ -1174,10 +1192,11 @@ describe("createApp", () => {
       activeRole: "professional",
       availableRoles: ["professional"],
     });
+    professional.csrfToken = meBefore.body.csrfToken;
 
     const enableRecruiter = await request(app)
       .post("/api/auth/roles/enable")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         role: "recruiter",
         makeActive: true,
@@ -1192,7 +1211,7 @@ describe("createApp", () => {
 
     const recruiterFavoritesWrongContext = await request(app)
       .get("/api/auth/profile")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     expect(recruiterFavoritesWrongContext.status).toBe(409);
     expect(recruiterFavoritesWrongContext.body).toMatchObject({
@@ -1203,7 +1222,7 @@ describe("createApp", () => {
 
     const switchBack = await request(app)
       .put("/api/auth/active-role")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         role: "professional",
       });
@@ -1215,7 +1234,7 @@ describe("createApp", () => {
       availableRoles: expect.arrayContaining(["professional", "recruiter"]),
     });
 
-    const meAfter = await request(app).get("/api/auth/me").set("Cookie", professional.cookie);
+    const meAfter = await request(app).get("/api/auth/me").set(csrfHeaders(professional));
 
     expect(meAfter.status).toBe(200);
     expect(meAfter.body.user).toMatchObject({
@@ -1238,6 +1257,127 @@ describe("createApp", () => {
 
     expect(response.status).toBe(403);
     expect(response.body.error).toBe("invalid_origin");
+  });
+
+  it("exige token CSRF para mutações autenticadas por cookie", async () => {
+    const { app, sendCodeEmail } = await createTestContext();
+    const professional = await createAndVerifyUser(app, sendCodeEmail, {
+      name: "Ada Lovelace",
+      email: "csrf-missing@example.com",
+      role: "professional",
+    });
+
+    const response = await publishProfessional(app, professional.cookie);
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe("invalid_csrf_token");
+  });
+
+  it("rejeita token CSRF inválido em mutações autenticadas", async () => {
+    const { app, sendCodeEmail } = await createTestContext();
+    const professional = await createAndVerifyUser(app, sendCodeEmail, {
+      name: "Ada Lovelace",
+      email: "csrf-invalid@example.com",
+      role: "professional",
+    });
+
+    const response = await publishProfessional(app, {
+      ...professional,
+      csrfToken: "invalid-csrf-token",
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.body.error).toBe("invalid_csrf_token");
+  });
+
+  it("emite token CSRF para sessão válida e permite mutação autenticada", async () => {
+    const { app, sendCodeEmail } = await createTestContext();
+    const professional = await createAndVerifyUser(app, sendCodeEmail, {
+      name: "Ada Lovelace",
+      email: "csrf-valid@example.com",
+      role: "professional",
+    });
+
+    const csrf = await request(app)
+      .get("/api/auth/csrf")
+      .set(csrfHeaders(professional));
+
+    expect(csrf.status).toBe(200);
+    expect(csrf.body.csrfToken).toEqual(expect.stringMatching(/^[A-Za-z0-9_-]{32,}$/));
+
+    const response = await request(app)
+      .put("/api/auth/profile")
+      .set({
+        Cookie: professional.cookie,
+        "X-CSRF-Token": csrf.body.csrfToken,
+      })
+      .send({
+        name: "Ada Lovelace",
+        city: "São Paulo",
+        state: "SP",
+        bio: "Especialista em plataformas e produto.",
+        headline: "Staff Engineer | React e Node.js",
+        linkedin: "https://linkedin.com/in/ada",
+        github: "https://github.com/ada",
+        portfolio: "https://ada.dev",
+        skills: ["React", "Node.js", "TypeScript"],
+        experiences: [
+          {
+            id: "exp-1",
+            role_title: "Staff Engineer",
+            company_name: "Open Talent",
+            start_date: "2020-01-01",
+            end_date: "",
+            is_current: true,
+            description: "Liderança técnica de produto e plataforma.",
+          },
+        ],
+        seniority: "senior",
+        workModels: ["remoto"],
+        openToOpportunities: true,
+        isPublished: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.publication.publicSlug).toEqual(expect.stringMatching(/^[a-z0-9-]+$/));
+  });
+
+  it("protege mutações administrativas com token CSRF", async () => {
+    const { app, sendCodeEmail } = await createTestContext();
+    const admin = await signInWithCode(app, sendCodeEmail, INTERNAL_OPERATIONS_ADMIN_EMAIL);
+    const candidate = await createAndVerifyUser(app, sendCodeEmail, {
+      name: "Grace Hopper",
+      email: "csrf-admin-target@opentalentpool.local",
+      role: "recruiter",
+    });
+
+    const blocked = await request(app)
+      .post(`/api/admin/users/${candidate.user.id}/promote-admin`)
+      .set("Cookie", admin.cookie)
+      .send({ reason: "Teste de proteção CSRF." });
+
+    expect(blocked.status).toBe(403);
+    expect(blocked.body.error).toBe("invalid_csrf_token");
+
+    const csrf = await request(app)
+      .get("/api/auth/csrf")
+      .set(csrfHeaders(admin));
+
+    expect(csrf.status).toBe(200);
+
+    const promoted = await request(app)
+      .post(`/api/admin/users/${candidate.user.id}/promote-admin`)
+      .set({
+        Cookie: admin.cookie,
+        "X-CSRF-Token": csrf.body.csrfToken,
+      })
+      .send({ reason: "Teste de proteção CSRF." });
+
+    expect(promoted.status).toBe(200);
+    expect(promoted.body.user).toMatchObject({
+      id: candidate.user.id,
+      isAdministrator: true,
+    });
   });
 
   it("aceita origem de IP privado local no ambiente de desenvolvimento", async () => {
@@ -1300,12 +1440,12 @@ describe("createApp", () => {
       ],
     );
 
-    const ownProfile = await request(app).get("/api/auth/profile").set("Cookie", professional.cookie);
+    const ownProfile = await request(app).get("/api/auth/profile").set(csrfHeaders(professional));
 
     expect(ownProfile.status).toBe(200);
     expect(ownProfile.body.profile).not.toHaveProperty("phone");
 
-    const save = await publishProfessional(app, professional.cookie, {
+    const save = await publishProfessional(app, professional, {
       isPublished: false,
       phone: "(11) 98888-7777",
     });
@@ -1331,7 +1471,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const ownProfile = await request(app).get("/api/auth/profile").set("Cookie", professional.cookie);
+    const ownProfile = await request(app).get("/api/auth/profile").set(csrfHeaders(professional));
 
     expect(ownProfile.status).toBe(200);
     expect(ownProfile.body.profile).toMatchObject({
@@ -1341,7 +1481,7 @@ describe("createApp", () => {
 
     const requestContactCode = await request(app)
       .post("/api/auth/profile/contact-email/request-code")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         nextContactEmail: "jobs@ada.dev",
       });
@@ -1372,7 +1512,7 @@ describe("createApp", () => {
 
     const resendDuringCooldown = await request(app)
       .post("/api/auth/profile/contact-email/request-code")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         nextContactEmail: "jobs@ada.dev",
       });
@@ -1382,7 +1522,7 @@ describe("createApp", () => {
 
     const verifyContactEmail = await request(app)
       .post("/api/auth/profile/contact-email/verify")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         challengeId: requestContactCode.body.challengeId,
         code: latestContactEmailChallenge?.code,
@@ -1394,7 +1534,7 @@ describe("createApp", () => {
       email: "jobs@ada.dev",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       contactEmail: "jobs@ada.dev",
       showContactEmailToRecruiters: true,
     });
@@ -1419,7 +1559,7 @@ describe("createApp", () => {
 
     const recruiterContact = await request(app)
       .get(`/api/recruiter/profiles/${publish.body.publication.publicSlug}/contact`)
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(recruiterContact.status).toBe(200);
     expect(recruiterContact.body).toEqual({
@@ -1440,7 +1580,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const unverifiedSave = await publishProfessional(app, professional.cookie, {
+    const unverifiedSave = await publishProfessional(app, professional, {
       contactEmail: "jobs@ada.dev",
       showContactEmailToRecruiters: true,
     });
@@ -1493,7 +1633,7 @@ describe("createApp", () => {
       ],
     );
 
-    const revertToAccountEmail = await publishProfessional(app, professional.cookie, {
+    const revertToAccountEmail = await publishProfessional(app, professional, {
       contactEmail: "ada@example.com",
       showContactEmailToRecruiters: false,
     });
@@ -1513,7 +1653,7 @@ describe("createApp", () => {
 
     const hiddenContact = await request(app)
       .get("/api/recruiter/profiles/ada-lovelace-1/contact")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(hiddenContact.status).toBe(404);
   });
@@ -1531,7 +1671,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       name: "Ada Lovelace",
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
@@ -1563,7 +1703,7 @@ describe("createApp", () => {
 
     const forbiddenFavorites = await request(app)
       .get("/api/recruiter/favorites")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     expect(forbiddenFavorites.status).toBe(403);
     expect(forbiddenFavorites.body).toMatchObject({
@@ -1573,14 +1713,14 @@ describe("createApp", () => {
 
     const addFavorite = await request(app)
       .post("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({ profileId: professional.user.id });
 
     expect(addFavorite.status).toBe(201);
 
     const favorites = await request(app)
       .get("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(favorites.status).toBe(200);
     expect(favorites.body.favorites).toHaveLength(1);
@@ -1591,7 +1731,7 @@ describe("createApp", () => {
 
     const saveSearch = await request(app)
       .post("/api/recruiter/saved-searches")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         name: "React remoto SP",
         criteria: {
@@ -1612,7 +1752,7 @@ describe("createApp", () => {
 
     const savedSearches = await request(app)
       .get("/api/recruiter/saved-searches")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(savedSearches.status).toBe(200);
     expect(savedSearches.body.savedSearches).toHaveLength(1);
@@ -1632,7 +1772,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       name: "Ada Lovelace",
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
@@ -1645,7 +1785,7 @@ describe("createApp", () => {
 
     const enableProfessional = await request(app)
       .post("/api/auth/roles/enable")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         role: "professional",
         makeActive: true,
@@ -1656,7 +1796,7 @@ describe("createApp", () => {
 
     const favoritesWrongContext = await request(app)
       .post("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({ profileId: professional.user.id });
 
     expect(favoritesWrongContext.status).toBe(409);
@@ -1668,7 +1808,7 @@ describe("createApp", () => {
 
     const switchToRecruiter = await request(app)
       .put("/api/auth/active-role")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         role: "recruiter",
       });
@@ -1678,7 +1818,7 @@ describe("createApp", () => {
 
     const addFavorite = await request(app)
       .post("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({ profileId: professional.user.id });
 
     expect(addFavorite.status).toBe(201);
@@ -1692,7 +1832,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       name: "Ada Lovelace",
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
@@ -1715,7 +1855,7 @@ describe("createApp", () => {
       [professional.user.id],
     );
 
-    const refreshAfterExpiry = await publishProfessional(app, professional.cookie, {
+    const refreshAfterExpiry = await publishProfessional(app, professional, {
       name: "Ada Lovelace",
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
@@ -1732,7 +1872,7 @@ describe("createApp", () => {
       expiredAt: null,
     });
 
-    const publishAgain = await publishProfessional(app, professional.cookie, {
+    const publishAgain = await publishProfessional(app, professional, {
       name: "Ada Lovelace",
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
@@ -1759,7 +1899,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const save = await publishProfessional(app, professional.cookie, {
+    const save = await publishProfessional(app, professional, {
       affirmativeProfile: {
         groups: ["women"],
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
@@ -1790,7 +1930,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const save = await publishProfessional(app, professional.cookie, {
+    const save = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -1812,14 +1952,14 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/affirmative-search/policy-acceptance")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
       });
 
     const inclusiveSearch = await request(app)
       .post("/api/recruiter/affirmative-search")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         q: "",
         seniority: "",
@@ -1860,7 +2000,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Staff Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -1878,7 +2018,7 @@ describe("createApp", () => {
 
     const initialPolicyStatus = await request(app)
       .get("/api/recruiter/affirmative-search/policy-status")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(initialPolicyStatus.status).toBe(200);
     expect(initialPolicyStatus.body).toMatchObject({
@@ -1888,7 +2028,7 @@ describe("createApp", () => {
 
     const acceptPolicy = await request(app)
       .post("/api/recruiter/affirmative-search/policy-acceptance")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
       });
@@ -1901,7 +2041,7 @@ describe("createApp", () => {
 
     const recruiterAcceptances = await request(app)
       .get("/api/auth/account/privacy-export")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(recruiterAcceptances.status).toBe(200);
     expect(recruiterAcceptances.body.policyAcceptances.recruiter).toContainEqual(
@@ -1914,7 +2054,7 @@ describe("createApp", () => {
 
     const inclusiveSearch = await request(app)
       .post("/api/recruiter/affirmative-search")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         q: "react",
         seniority: "",
@@ -1943,7 +2083,7 @@ describe("createApp", () => {
 
     const exportAfterAudit = await request(app)
       .get("/api/auth/account/privacy-export")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(exportAfterAudit.status).toBe(200);
     expect(exportAfterAudit.body.inclusiveSearchAudit).toContainEqual(
@@ -1958,7 +2098,7 @@ describe("createApp", () => {
 
     const saveSearch = await request(app)
       .post("/api/recruiter/saved-searches")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         name: "Busca inclusiva frontend",
         criteria: {
@@ -2011,7 +2151,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Platform Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2029,19 +2169,19 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({ profileId: professional.user.id });
 
     await request(app)
       .post("/api/recruiter/affirmative-search/policy-acceptance")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
       });
 
     await request(app)
       .post("/api/recruiter/affirmative-search")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         q: "react",
         seniority: "",
@@ -2063,7 +2203,7 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/saved-searches")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         name: "Busca exportável",
         criteria: {
@@ -2078,7 +2218,7 @@ describe("createApp", () => {
 
     const exportResponse = await request(app)
       .get("/api/auth/account/privacy-export")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(exportResponse.status).toBe(200);
     expect(exportResponse.body).toMatchObject({
@@ -2128,7 +2268,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Platform Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2146,19 +2286,19 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/favorites")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({ profileId: professional.user.id });
 
     await request(app)
       .post("/api/recruiter/affirmative-search/policy-acceptance")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
       });
 
     await request(app)
       .post("/api/recruiter/affirmative-search")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         q: "react",
         seniority: "",
@@ -2180,7 +2320,7 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/saved-searches")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         name: "Busca para excluir",
         criteria: {
@@ -2195,7 +2335,7 @@ describe("createApp", () => {
 
     const deletion = await request(app)
       .delete("/api/auth/account")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         confirmEmail: "rachel-delete@example.com",
       });
@@ -2230,7 +2370,7 @@ describe("createApp", () => {
     expect(legalLedger.rows[0].count).toBeGreaterThanOrEqual(3);
     expect(affirmativeAudit.rows[0].count).toBe(1);
 
-    const afterDeletion = await request(app).get("/api/auth/me").set("Cookie", recruiter.cookie);
+    const afterDeletion = await request(app).get("/api/auth/me").set(csrfHeaders(recruiter));
 
     expect(afterDeletion.status).toBe(401);
     expect(afterDeletion.body.error).toBe("invalid_session");
@@ -2258,7 +2398,7 @@ describe("createApp", () => {
 
     const requestContactCode = await request(app)
       .post("/api/auth/profile/contact-email/request-code")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         nextContactEmail: "jobs@ada.dev",
       });
@@ -2269,7 +2409,7 @@ describe("createApp", () => {
 
     const verifyContactEmail = await request(app)
       .post("/api/auth/profile/contact-email/verify")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         challengeId: requestContactCode.body.challengeId,
         code: latestContactEmailChallenge?.code,
@@ -2277,7 +2417,7 @@ describe("createApp", () => {
 
     expect(verifyContactEmail.status).toBe(200);
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       contactEmail: "jobs@ada.dev",
       showContactEmailToRecruiters: true,
     });
@@ -2286,7 +2426,7 @@ describe("createApp", () => {
 
     const recruiterContact = await request(app)
       .get(`/api/recruiter/profiles/${publish.body.publication.publicSlug}/contact`)
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(recruiterContact.status).toBe(200);
     expect(recruiterContact.body).toEqual({
@@ -2295,7 +2435,7 @@ describe("createApp", () => {
 
     const accesses = await request(app)
       .get("/api/auth/profile/contact-accesses")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     expect(accesses.status).toBe(200);
     expect(accesses.body.accesses).toContainEqual(
@@ -2310,7 +2450,7 @@ describe("createApp", () => {
 
     const recruiterReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         targetKind: "recruiter_contact_access",
         targetRef: String(contactAccessId),
@@ -2326,7 +2466,7 @@ describe("createApp", () => {
 
     const exported = await request(app)
       .get("/api/auth/account/privacy-export")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     expect(exported.status).toBe(200);
     expect(exported.body.moderation.contactAccessLogs).toContainEqual(
@@ -2338,7 +2478,7 @@ describe("createApp", () => {
 
     const openReports = await request(app)
       .get("/api/admin/moderation/reports")
-      .set("Cookie", admin.cookie);
+      .set(csrfHeaders(admin));
 
     expect(openReports.status).toBe(200);
     expect(openReports.body.reports).toContainEqual(
@@ -2362,7 +2502,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2374,7 +2514,7 @@ describe("createApp", () => {
 
     const createReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2421,7 +2561,7 @@ describe("createApp", () => {
 
     const duplicateReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2434,7 +2574,7 @@ describe("createApp", () => {
 
     const reportStatus = await request(app)
       .get("/api/reports/me/status")
-      .set("Cookie", reporter.cookie);
+      .set(csrfHeaders(reporter));
 
     expect(reportStatus.status).toBe(200);
     expect(reportStatus.body).toMatchObject({
@@ -2457,7 +2597,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2471,7 +2611,7 @@ describe("createApp", () => {
 
     const createReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2508,7 +2648,7 @@ describe("createApp", () => {
         role: "professional",
       });
 
-      const publish = await publishProfessional(app, target.cookie, {
+      const publish = await publishProfessional(app, target, {
         name: `Target ${index}`,
         headline: "Frontend Engineer",
         city: "São Paulo",
@@ -2521,7 +2661,7 @@ describe("createApp", () => {
 
       const created = await request(app)
         .post("/api/reports")
-        .set("Cookie", reporter.cookie)
+        .set(csrfHeaders(reporter))
         .send({
           targetKind: "professional_public_profile",
           targetRef: publish.body.publication.publicSlug,
@@ -2533,7 +2673,7 @@ describe("createApp", () => {
 
       const resolved = await request(app)
         .post(`/api/admin/moderation/reports/${created.body.report.id}/resolve`)
-        .set("Cookie", admin.cookie)
+        .set(csrfHeaders(admin))
         .send({
           decision: "dismiss_false_report",
           adminNotes: `Falsa denúncia ${index}`,
@@ -2548,7 +2688,7 @@ describe("createApp", () => {
 
     const reportStatus = await request(app)
       .get("/api/reports/me/status")
-      .set("Cookie", reporter.cookie);
+      .set(csrfHeaders(reporter));
 
     expect(reportStatus.status).toBe(200);
     expect(reportStatus.body.canSubmit).toBe(false);
@@ -2560,7 +2700,7 @@ describe("createApp", () => {
       email: "blocked-target@example.com",
       role: "professional",
     });
-    const blockedPublish = await publishProfessional(app, blockedTarget.cookie, {
+    const blockedPublish = await publishProfessional(app, blockedTarget, {
       name: "Blocked Target",
       headline: "Platform Engineer",
       city: "São Paulo",
@@ -2573,7 +2713,7 @@ describe("createApp", () => {
 
     const blockedReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: blockedPublish.body.publication.publicSlug,
@@ -2605,7 +2745,7 @@ describe("createApp", () => {
 
     await promoteUserToAdministrator(pool, admin.user.id);
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2617,7 +2757,7 @@ describe("createApp", () => {
 
     const created = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2630,7 +2770,7 @@ describe("createApp", () => {
 
     const resolved = await request(app)
       .post(`/api/admin/moderation/reports/${created.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "hide_professional_profile",
         adminNotes: "Conteúdo removido da vitrine pública.",
@@ -2670,7 +2810,7 @@ describe("createApp", () => {
     const publicProfile = await request(app).get(`/api/profiles/${publish.body.publication.publicSlug}`);
     expect(publicProfile.status).toBe(404);
 
-    const blockedPublish = await publishProfessional(app, professional.cookie, {
+    const blockedPublish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2684,7 +2824,7 @@ describe("createApp", () => {
 
     const restore = await request(app)
       .post(`/api/admin/moderation/users/${professional.user.id}/restore-profile`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         reason: "Conteúdo corrigido.",
       });
@@ -2692,7 +2832,7 @@ describe("createApp", () => {
     expect(restore.status).toBe(200);
     expect(restore.body.ok).toBe(true);
 
-    const republish = await publishProfessional(app, professional.cookie, {
+    const republish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2725,7 +2865,7 @@ describe("createApp", () => {
 
     await promoteUserToAdministrator(pool, admin.user.id);
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2737,7 +2877,7 @@ describe("createApp", () => {
 
     const firstReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2749,7 +2889,7 @@ describe("createApp", () => {
 
     const firstResolution = await request(app)
       .post(`/api/admin/moderation/reports/${firstReport.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "hide_professional_profile",
         adminNotes: "Primeiro strike aplicado.",
@@ -2759,14 +2899,14 @@ describe("createApp", () => {
 
     const restoreProfile = await request(app)
       .post(`/api/admin/moderation/users/${professional.user.id}/restore-profile`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         reason: "Perfil revisado para continuar a investigação.",
       });
 
     expect(restoreProfile.status).toBe(200);
 
-    const republish = await publishProfessional(app, professional.cookie, {
+    const republish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2779,7 +2919,7 @@ describe("createApp", () => {
 
     const secondReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: republish.body.publication.publicSlug,
@@ -2793,7 +2933,7 @@ describe("createApp", () => {
 
     const resolved = await request(app)
       .post(`/api/admin/moderation/reports/${secondReport.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "suspend_target_account",
         adminNotes: "Segundo strike aplicado com suspensão.",
@@ -2813,7 +2953,7 @@ describe("createApp", () => {
 
     const suspendedMe = await request(app)
       .get("/api/auth/me")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     expect(suspendedMe.status).toBe(403);
     expect(suspendedMe.body.error).toBe("account_suspended");
@@ -2839,7 +2979,7 @@ describe("createApp", () => {
 
     await promoteUserToAdministrator(pool, admin.user.id);
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2851,7 +2991,7 @@ describe("createApp", () => {
 
     const firstReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -2863,7 +3003,7 @@ describe("createApp", () => {
 
     const firstResolution = await request(app)
       .post(`/api/admin/moderation/reports/${firstReport.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "hide_professional_profile",
         adminNotes: "Primeiro strike.",
@@ -2873,12 +3013,12 @@ describe("createApp", () => {
 
     await request(app)
       .post(`/api/admin/moderation/users/${professional.user.id}/restore-profile`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         reason: "Perfil revisado.",
       });
 
-    const republishAfterFirst = await publishProfessional(app, professional.cookie, {
+    const republishAfterFirst = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2891,7 +3031,7 @@ describe("createApp", () => {
 
     const secondReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: republishAfterFirst.body.publication.publicSlug,
@@ -2903,7 +3043,7 @@ describe("createApp", () => {
 
     const secondResolution = await request(app)
       .post(`/api/admin/moderation/reports/${secondReport.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "suspend_target_account",
         adminNotes: "Segundo strike.",
@@ -2913,7 +3053,7 @@ describe("createApp", () => {
 
     const restoreAccount = await request(app)
       .post(`/api/admin/moderation/users/${professional.user.id}/restore-account`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         reason: "Conta reativada para fechamento do fluxo de reincidência.",
       });
@@ -2921,7 +3061,7 @@ describe("createApp", () => {
     expect(restoreAccount.status).toBe(200);
 
     const restoredLogin = await signInWithCode(app, sendCodeEmail, "ada-third-strike@example.com");
-    const republishAfterSecond = await publishProfessional(app, restoredLogin.cookie, {
+    const republishAfterSecond = await publishProfessional(app, restoredLogin, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -2934,7 +3074,7 @@ describe("createApp", () => {
 
     const thirdReport = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: republishAfterSecond.body.publication.publicSlug,
@@ -2948,7 +3088,7 @@ describe("createApp", () => {
 
     const resolved = await request(app)
       .post(`/api/admin/moderation/reports/${thirdReport.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "permanent_ban_target_account",
         adminNotes: "Terceiro strike com encerramento definitivo.",
@@ -3006,7 +3146,7 @@ describe("createApp", () => {
 
     const adminQueue = await request(app)
       .get("/api/admin/moderation/reports")
-      .set("Cookie", admin.cookie);
+      .set(csrfHeaders(admin));
 
     expect(adminQueue.status).toBe(200);
     expect(adminQueue.body.recentActions).toContainEqual(
@@ -3039,7 +3179,7 @@ describe("createApp", () => {
 
     await promoteUserToAdministrator(pool, admin.user.id);
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -3051,7 +3191,7 @@ describe("createApp", () => {
 
     const created = await request(app)
       .post("/api/reports")
-      .set("Cookie", reporter.cookie)
+      .set(csrfHeaders(reporter))
       .send({
         targetKind: "professional_public_profile",
         targetRef: publish.body.publication.publicSlug,
@@ -3065,7 +3205,7 @@ describe("createApp", () => {
 
     const invalidHide = await request(app)
       .post(`/api/admin/moderation/reports/${created.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "hide_professional_profile",
         adminNotes: "Tentativa inválida de sanção leve.",
@@ -3077,7 +3217,7 @@ describe("createApp", () => {
 
     const resolved = await request(app)
       .post(`/api/admin/moderation/reports/${created.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "permanent_ban_target_account",
         adminNotes: "Conteúdo discriminatório grave em perfil público.",
@@ -3122,7 +3262,7 @@ describe("createApp", () => {
 
     const requestContactCode = await request(app)
       .post("/api/auth/profile/contact-email/request-code")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         nextContactEmail: "jobs@ada.dev",
       });
@@ -3131,13 +3271,13 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/auth/profile/contact-email/verify")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         challengeId: requestContactCode.body.challengeId,
         code: latestContactEmailChallenge?.code,
       });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       contactEmail: "jobs@ada.dev",
       showContactEmailToRecruiters: true,
     });
@@ -3146,15 +3286,15 @@ describe("createApp", () => {
 
     await request(app)
       .get(`/api/recruiter/profiles/${publish.body.publication.publicSlug}/contact`)
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     const accesses = await request(app)
       .get("/api/auth/profile/contact-accesses")
-      .set("Cookie", professional.cookie);
+      .set(csrfHeaders(professional));
 
     const created = await request(app)
       .post("/api/reports")
-      .set("Cookie", professional.cookie)
+      .set(csrfHeaders(professional))
       .send({
         targetKind: "recruiter_contact_access",
         targetRef: String(accesses.body.accesses[0].id),
@@ -3166,7 +3306,7 @@ describe("createApp", () => {
 
     const resolved = await request(app)
       .post(`/api/admin/moderation/reports/${created.body.report.id}/resolve`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         decision: "suspend_target_account",
         adminNotes: "Conta suspensa após revisão.",
@@ -3185,14 +3325,14 @@ describe("createApp", () => {
 
     const suspendedMe = await request(app)
       .get("/api/auth/me")
-      .set("Cookie", recruiter.cookie);
+      .set(csrfHeaders(recruiter));
 
     expect(suspendedMe.status).toBe(403);
     expect(suspendedMe.body.error).toBe("account_suspended");
 
     const restore = await request(app)
       .post(`/api/admin/moderation/users/${recruiter.user.id}/restore-account`)
-      .set("Cookie", admin.cookie)
+      .set(csrfHeaders(admin))
       .send({
         reason: "Suspensão revertida.",
       });
@@ -3203,7 +3343,7 @@ describe("createApp", () => {
     const restoredLogin = await signInWithCode(app, sendCodeEmail, "rachel-suspend-account@example.com");
     const restoredMe = await request(app)
       .get("/api/auth/me")
-      .set("Cookie", restoredLogin.cookie);
+      .set(csrfHeaders(restoredLogin));
 
     expect(restoredMe.status).toBe(200);
     expect(restoredMe.body.user.email).toBe("rachel-suspend-account@example.com");
@@ -3222,7 +3362,7 @@ describe("createApp", () => {
       role: "professional",
     });
 
-    const publish = await publishProfessional(app, professional.cookie, {
+    const publish = await publishProfessional(app, professional, {
       headline: "Frontend Engineer",
       city: "São Paulo",
       state: "SP",
@@ -3240,14 +3380,14 @@ describe("createApp", () => {
 
     await request(app)
       .post("/api/recruiter/affirmative-search/policy-acceptance")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         policyVersion: AFFIRMATIVE_POLICY_VERSION,
       });
 
     const inclusiveSearch = await request(app)
       .post("/api/recruiter/affirmative-search")
-      .set("Cookie", recruiter.cookie)
+      .set(csrfHeaders(recruiter))
       .send({
         q: "",
         seniority: "",

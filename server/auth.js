@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, randomInt } from "crypto";
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from "crypto";
 import { URL } from "url";
 import {
   ASYNC_EMAIL_PRIORITY,
@@ -187,6 +187,10 @@ export function hashSessionToken(token, pepper) {
   return hmacValue(pepper, "session", token);
 }
 
+export function hashCsrfToken(sessionId, token, pepper) {
+  return hmacValue(pepper, `csrf:${sessionId}`, token);
+}
+
 export function hashPrivacyActor(identifier, pepper) {
   return hmacValue(pepper, "privacy-actor", String(identifier || "").trim().toLowerCase());
 }
@@ -356,6 +360,31 @@ function buildCookieOptions(config, { maxAge = config.authSessionMaxMs } = {}) {
   }
 
   return options;
+}
+
+function createCsrfToken() {
+  return randomBytes(32).toString("base64url");
+}
+
+function createCsrfState(sessionId, config) {
+  const token = createCsrfToken();
+
+  return {
+    token,
+    tokenHash: hashCsrfToken(sessionId, token, config.authCodePepper),
+  };
+}
+
+function safelyCompareHex(left, right) {
+  if (!left || !right || left.length !== right.length) {
+    return false;
+  }
+
+  try {
+    return timingSafeEqual(Buffer.from(left, "hex"), Buffer.from(right, "hex"));
+  } catch {
+    return false;
+  }
 }
 
 function getCurrentWindowReset(now, windowMs) {
@@ -1386,6 +1415,7 @@ export function createAuthService({
     const sessionToken = randomBytes(32).toString("base64url");
     const sessionId = createPublicId(16);
     const tokenHash = hashSessionToken(sessionToken, config.authCodePepper);
+    const csrfState = createCsrfState(sessionId, config);
     const sessionDurations = getSessionDurationsForUser(user, config);
     const absoluteExpiresAt = futureDate(now, sessionDurations.absoluteMs);
     const idleExpiresAt = futureDate(now, sessionDurations.idleMs);
@@ -1412,10 +1442,11 @@ export function createAuthService({
           last_seen_at,
           idle_expires_at,
           absolute_expires_at,
+          csrf_token_hash,
           created_ip,
           created_user_agent
         )
-        VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $5, $6, $7, $8, $9, $10)
       `,
       [
         sessionId,
@@ -1425,6 +1456,7 @@ export function createAuthService({
         now,
         idleExpiresAt,
         absoluteExpiresAt,
+        csrfState.tokenHash,
         remoteIp,
         trimUserAgent(userAgent),
       ],
@@ -1432,6 +1464,7 @@ export function createAuthService({
 
     return {
       sessionToken,
+      csrfToken: csrfState.token,
       sessionDurations,
     };
   }
@@ -2036,6 +2069,7 @@ export function createAuthService({
 
       return {
         user: buildAuthenticatedUser(user, defaultActiveRole, availableRoles),
+        csrfToken: session.csrfToken,
       };
     } catch (error) {
       await client.query("ROLLBACK").catch(() => undefined);
@@ -2067,6 +2101,7 @@ export function createAuthService({
           active_role,
           idle_expires_at,
           absolute_expires_at,
+          csrf_token_hash,
           revoked_at,
           revoked_reason
         FROM auth_sessions
@@ -2210,6 +2245,7 @@ export function createAuthService({
 
     return {
       sessionId: session.session_id,
+      csrfTokenHash: session.csrf_token_hash || null,
       userId: user.id,
       name: user.name,
       email: user.email,
@@ -2494,6 +2530,34 @@ export function createAuthService({
     };
   }
 
+  async function issueCsrfToken(sessionId) {
+    const csrfState = createCsrfState(sessionId, config);
+
+    await pool.query(
+      `
+        UPDATE auth_sessions
+        SET csrf_token_hash = $2,
+            last_seen_at = NOW()
+        WHERE session_id = $1
+          AND revoked_at IS NULL
+      `,
+      [sessionId, csrfState.tokenHash],
+    );
+
+    return csrfState.token;
+  }
+
+  function isValidCsrfToken(user, token) {
+    const normalizedToken = String(token || "").trim();
+
+    if (!user?.sessionId || !user?.csrfTokenHash || !normalizedToken) {
+      return false;
+    }
+
+    const providedHash = hashCsrfToken(user.sessionId, normalizedToken, config.authCodePepper);
+    return safelyCompareHex(providedHash, user.csrfTokenHash);
+  }
+
   return {
     authenticateRequest,
     issueSignUpChallenge(input) {
@@ -2511,6 +2575,8 @@ export function createAuthService({
     listAdminUsers,
     promoteUserToAdministrator,
     revokeAdministratorFromUser,
+    issueCsrfToken,
+    isValidCsrfToken,
     signOut,
     setAuthCookie: (res, sessionToken) => buildAuthCookieState(res, sessionToken, config),
     clearAuthCookie: (res) => clearAuthCookieState(res, config),
