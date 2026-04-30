@@ -2,6 +2,9 @@ import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  // The E2E webServer shares one in-memory backend and email recorder.
+  // Keep CI serial to avoid cross-test OTP and fixture state races.
+  workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL: "http://127.0.0.1:8180",
     trace: "on-first-retry",
