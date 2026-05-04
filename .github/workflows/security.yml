@@ -32,7 +32,7 @@ jobs:
           node-version: 20
 
       - name: Setup Go for gitleaks
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: stable
           cache: false
